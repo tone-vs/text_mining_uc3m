@@ -1,0 +1,279 @@
+---
+title: "Voices of Resistance: A Comparative Text Analysis of Amiri Baraka and Mahmoud Darwish"
+author: ""
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(quanteda)
+library(tidytext)
+library(arabicStemR)  # for Arabic morphological processing
+```
+
+---
+
+## 1. Introduction
+
+This analysis undertakes a computational comparison of six poems — three by the Palestinian poet **Mahmoud Darwish** (in Arabic) and three by the African-American poet **Amiri Baraka** (in English). Both poets are canonical voices of political resistance, but they operate in different languages, traditions, and geopolitical contexts. The central question driving this analysis is:
+
+> **Does the linguistic and structural nature of Arabic versus English shape how anger, defiance, and hope are expressed in resistance poetry?**
+
+We approach this question through two primary analytical lenses: **lexical diversity** and **sentiment trajectory**.
+
+### 1.2 downloading NRC arabic library
+
+```{r}
+# Step 2: Load it as a custom lexicon
+nrc_arabic <- read_tsv("NRC-Emotion-Lexicon/NRC-Emotion-Lexicon-ForVariousLanguages.txt") %>%
+  select(word = `Arabic`,
+         anger, anticipation, disgust, fear,
+         joy, negative, positive, sadness, surprise, trust) %>%
+  pivot_longer(
+    cols = -word,
+    names_to = "sentiment",
+    values_to = "value"
+  ) %>%
+  filter(value == 1) %>%
+  select(word, sentiment)
+```
+---
+
+## 2. Data
+
+
+### 2.1 Baraka Corpus
+
+The three Baraka poems included in this analysis are:
+
+- *SOS*
+- *Ka'Ba*
+- *Somebody Blew Up America*
+
+These were compiled into a tidy line-level dataset using the `baraka_poems_dataset.R` script. Each row represents one line, tagged with poet, poem title, and line number.
+
+```{r}
+baraka_poems <- source("~/Documents/GitHub/text_mining_uc3m/Baraka_dataset.R")
+```
+
+
+### 2.2 Darwish Corpus
+
+The three Darwish poems are:
+
+- [Poem 1 title]
+- [Poem 2 title]
+- [Poem 3 title]
+
+**Note on Arabic preprocessing:** Arabic text requires special handling before analysis. The following steps must be applied before building the corpus:
+
+- **Normalization:** Standardize Alef variants (أ إ آ → ا), remove diacritics (tashkeel), and normalize Ta Marbuta.
+- **Tokenization:** Use a whitespace-aware tokenizer that respects Arabic right-to-left script.
+- **Stopword removal:** Apply an Arabic stopword list (e.g., from the `stopwords` package with `language = "ar"`).
+- **Stemming/Lemmatization:** Consider whether to stem (reduces words to root) or lemmatize (reduces to dictionary form). Stemming will increase TTR artificially — document your choice.
+
+```{r}
+source("~/Documents/GitHub/text_mining_uc3m/darwish_dataset.R")
+```
+
+
+### 2.3 Combined Dataset
+
+```{r data-load}
+# Load Baraka line-level data
+# source("baraka_poems_dataset.R")
+
+# Load Darwish data
+# darwish_lines <- read_csv("darwish_poems_dataset.csv")
+
+# Combine
+# all_lines <- bind_rows(baraka_lines, darwish_lines)
+```
+
+---
+
+## 3. Analytical Framework
+
+This project uses a **hybrid Quanteda + tidytext workflow**:
+
+- **Quanteda** is used as the computational engine to build Document-Feature Matrices (DFMs) and calculate statistics that require matrix-level operations (e.g., TTR, document similarity).
+- **tidytext** is used to reshape data into long/tidy format for visualization and sentiment mapping.
+
+The two techniques are complementary: Quanteda handles the math correctly for Arabic, while tidytext integrates cleanly with `ggplot2` for output.
+
+---
+
+## 4. Technique 1 — Lexical Diversity (TTR)
+
+### 4.1 What We Are Measuring
+
+The **Type-Token Ratio (TTR)** measures the proportion of unique words (types) to total words (tokens) in a text:
+
+$$TTR = \frac{\text{Number of Unique Words}}{\text{Total Number of Words}}$$
+
+A higher TTR indicates a richer, more varied vocabulary. We expect Arabic to yield a higher TTR partly due to its morphological richness — a single Arabic root can generate many surface forms that count as distinct types.
+
+**Important caveat:** TTR is sensitive to text length. Longer texts almost always have lower TTR. We will use **Moving Average TTR (MATTR)** or **Measure of Textual Lexical Diversity (MTLD)** from Quanteda to correct for this, enabling a fair comparison across poems of different lengths.
+
+### 4.2 Building the DFM
+
+```{r dfm-build}
+# Step 1: Create a quanteda corpus from the combined dataset
+# corpus_all <- corpus(all_lines, text_field = "line",
+#                      docvars = data.frame(poet = all_lines$poet,
+#                                           poem = all_lines$poem))
+
+# Step 2: Tokenize (handling Arabic RTL correctly)
+# tokens_all <- tokens(corpus_all,
+#                      remove_punct = TRUE,
+#                      remove_numbers = TRUE)
+
+# Step 3: Remove stopwords (both languages)
+# tokens_all <- tokens_remove(tokens_all,
+#                              pattern = c(stopwords("en"), stopwords("ar")))
+
+# Step 4: Build DFM
+# dfm_all <- dfm(tokens_all)
+```
+
+### 4.3 Calculating TTR per Poem
+
+```{r ttr-calculate}
+# Group by poem before calculating
+# dfm_by_poem <- dfm_group(dfm_all, groups = interaction(poet, poem))
+
+# Calculate TTR
+# ttr_results <- textstat_lexdiv(dfm_by_poem, measure = "TTR")
+# mtld_results <- textstat_lexdiv(dfm_by_poem, measure = "MTLD")
+```
+
+### 4.4 Visualization
+
+```{r ttr-plot}
+# ttr_results %>%
+#   mutate(poet = if_else(str_detect(document, "Baraka"), "Baraka", "Darwish")) %>%
+#   ggplot(aes(x = reorder(document, TTR), y = TTR, fill = poet)) +
+#   geom_col() +
+#   coord_flip() +
+#   labs(title = "Lexical Diversity (TTR) by Poem",
+#        subtitle = "Higher = more varied vocabulary",
+#        x = NULL, y = "Type-Token Ratio") +
+#   theme_minimal()
+```
+
+**Interpretation guide:** When writing up results, address:
+
+- Which poet has a higher average TTR, and is the difference consistent across poems?
+- Does poem length explain any differences? (Check with MTLD which controls for length.)
+- What does this suggest about Arabic morphology vs. English in resistance poetry?
+
+---
+
+## 5. Technique 2 — Sentiment Trajectory & Polarity
+
+### 5.1 What We Are Measuring
+
+Rather than a single sentiment score per poem, we map **how sentiment evolves across the poem** — from the first line to the last. This allows us to answer:
+
+- Does Darwish build toward a peak of anger, or sustain it throughout?
+- Does Baraka's anger follow a different structural arc?
+- Where does *hope* or *defiance* appear relative to *grief* or *rage*?
+
+We will track three dimensions of sentiment: **Anger**, **Hope/Defiance**, and **Grief/Sorrow**.
+
+### 5.2 Lexicon Strategy
+
+For **English (Baraka):** Use the NRC Emotion Lexicon (`tidytext::get_sentiments("nrc")`), which provides word-level scores for 8 emotions including anger, fear, trust, and anticipation.
+
+For **Arabic (Darwish):** This requires a dedicated Arabic sentiment lexicon. Options include:
+
+- **Arabic NRC Lexicon** (Mohammad et al.) — a translated version of NRC
+- **ASTD** (Arabic Sentiment Tweets Dataset)
+- **ArSentD-LEV** — if poems use Levantine dialect
+
+Document which lexicon is used and note any coverage gaps (words in the poem not found in the lexicon).
+
+### 5.3 Tidytext Sentiment Join
+
+```{r sentiment-join}
+# English: join NRC lexicon
+# baraka_sentiment <- baraka_lines %>%
+#   unnest_tokens(word, line) %>%
+#   inner_join(get_sentiments("nrc"), by = "word") %>%
+#   filter(sentiment %in% c("anger", "anticipation", "trust", "sadness")) %>%
+#   group_by(poem, line_number, sentiment) %>%
+#   summarise(n = n(), .groups = "drop")
+
+# Arabic: join Arabic NRC or chosen lexicon
+# darwish_sentiment <- darwish_lines %>%
+#   unnest_tokens(word, line) %>%
+#   inner_join(arabic_nrc, by = "word") %>%
+#   ...
+```
+
+### 5.4 Smoothed Trajectory Plot
+
+```{r sentiment-trajectory}
+# all_sentiment %>%
+#   filter(sentiment == "anger") %>%
+#   ggplot(aes(x = line_number, y = n, color = poet)) +
+#   geom_smooth(method = "loess", se = TRUE) +
+#   facet_wrap(~poem, scales = "free_x") +
+#   labs(title = "Anger Trajectory Across Poem Lines",
+#        x = "Line Number", y = "Anger Word Count") +
+#   theme_minimal()
+```
+
+**Note on smoothing:** Use `geom_smooth(method = "loess")` to reveal the overall arc without overreacting to individual lines. Show the raw points as well with `geom_point(alpha = 0.3)` for transparency.
+
+### 5.5 Polarity Heatmap (Optional Extension)
+
+A heatmap showing each poem as a column and each line as a row, colored by dominant emotion, can give an immediate visual intuition of structural differences between the poets.
+
+```{r heatmap}
+# all_sentiment %>%
+#   group_by(poet, poem, line_number) %>%
+#   slice_max(n, n = 1) %>%  # dominant emotion per line
+#   ggplot(aes(x = poem, y = line_number, fill = sentiment)) +
+#   geom_tile() +
+#   scale_fill_brewer(palette = "Set2") +
+#   facet_wrap(~poet, scales = "free") +
+#   labs(title = "Dominant Emotion by Line",
+#        x = NULL, y = "Line Number") +
+#   theme_minimal()
+```
+
+---
+
+## 6. Synthesis & Interpretation
+
+This section should bring the two techniques into dialogue. Suggested questions to address:
+
+- **Do the TTR results and sentiment results tell a consistent story?** For example, if Darwish has higher lexical diversity AND a more gradual emotional build, this might suggest a more layered rhetorical strategy.
+- **What are the limitations?** Sentiment lexicons are imperfect; translation of emotion concepts across cultures is contested. Acknowledge that "anger" in the NRC lexicon was built on English-language intuitions.
+- **What does "manifestation of anger" mean differently for each poet?** Consider the poems' political contexts — Darwish writing under occupation, Baraka writing in the aftermath of 9/11.
+
+---
+
+## 7. Next Steps & Open Questions
+
+- [ ] Finalize Darwish poem selection and build `darwish_lines` dataset in the same structure as `baraka_lines`
+- [ ] Evaluate Arabic lexicon options and document coverage rates
+- [ ] Decide on TTR correction method (MATTR vs. MTLD) and justify in write-up
+- [ ] Run pilot TTR calculation on Baraka alone to verify the Quanteda pipeline before adding Arabic
+- [ ] Determine whether to stem Arabic text and document effect on TTR
+- [ ] Draft interpretation of results for Section 6 once analysis is complete
+
+---
+
+## Appendix: Session Info
+
+```{r session-info}
+sessionInfo()
+```

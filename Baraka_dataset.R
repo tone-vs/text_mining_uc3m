@@ -348,4 +348,8 @@ baraka_lines <- baraka_poems |>
   ungroup() |>
   select(poet, poem, line_number, line)
 
+## sources:
+#https://genius.com/Amiri-baraka-somebody-blew-up-america-annotated
+#https://genius.com/Amiri-baraka-sos-annotated
+#https://www.becauseofthemwecan.com/5-must-read-poems-by-amiri-baraka-that-will-change-your-outlook-on-life-forever/
 

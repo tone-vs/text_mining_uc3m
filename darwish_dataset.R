@@ -104,3 +104,8 @@ darwish_lines <- darwish_poems |>
   mutate(line_number = row_number()) |>
   ungroup() |>
   select(poet, poem, line_number, line)
+
+### soruces:
+## https://archmemoryblog.wordpress.com/2014/07/14/mahmoud-darwish-on-this-earth-%D9%85%D8%AD%D9%85%D9%88%D8%AF-%D8%AF%D8%B1%D9%88%D9%8A%D8%B4-%D8%B9%D9%84%D9%89-%D9%87%D8%B0%D9%87-%D8%A7%D9%84%D8%A3%D8%B1%D8%B6/
+# https://edinburgharabicinitiative.wordpress.com/2013/10/30/i-am-from-there-mahmoud-darwish-palestine/
+#https://www.antiwarsongs.org/confronta.php?id=8741&ver=20317&lang=en
