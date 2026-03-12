@@ -19,6 +19,7 @@ library(arabicStemR)  # for Arabic morphological processing
 
 ---
 
+LOOK AT SPARCITY AS WELL. 
 ## 1. Introduction
 
 This analysis undertakes a computational comparison of six poems — three by the Palestinian poet **Mahmoud Darwish** (in Arabic) and three by the African-American poet **Amiri Baraka** (in English). Both poets are canonical voices of political resistance, but they operate in different languages, traditions, and geopolitical contexts. The central question driving this analysis is:
@@ -93,7 +94,7 @@ source("~/Documents/GitHub/text_mining_uc3m/darwish_dataset.R")
 # darwish_lines <- read_csv("darwish_poems_dataset.csv")
 
 # Combine
-# all_lines <- bind_rows(baraka_lines, darwish_lines)
+all_lines <- bind_rows(baraka_lines, darwish_lines)
 ```
 
 ---
@@ -125,32 +126,33 @@ A higher TTR indicates a richer, more varied vocabulary. We expect Arabic to yie
 
 ```{r dfm-build}
 # Step 1: Create a quanteda corpus from the combined dataset
-# corpus_all <- corpus(all_lines, text_field = "line",
-#                      docvars = data.frame(poet = all_lines$poet,
-#                                           poem = all_lines$poem))
 
+corpus_all <- corpus(all_lines, text_field = "line",
+                    docvars = data.frame(poet = all_lines$poet,
+                                          poem = all_lines$poem))
+                    
 # Step 2: Tokenize (handling Arabic RTL correctly)
-# tokens_all <- tokens(corpus_all,
-#                      remove_punct = TRUE,
-#                      remove_numbers = TRUE)
+tokens_all <- tokens(corpus_all,
+                     remove_punct = TRUE,
+                     remove_numbers = TRUE)
 
 # Step 3: Remove stopwords (both languages)
-# tokens_all <- tokens_remove(tokens_all,
-#                              pattern = c(stopwords("en"), stopwords("ar")))
+tokens_all <- tokens_remove(tokens_all,
+                            pattern = c(stopwords("en"), stopwords("ar")))
 
 # Step 4: Build DFM
-# dfm_all <- dfm(tokens_all)
+dfm_all <- dfm(tokens_all)
 ```
 
 ### 4.3 Calculating TTR per Poem
 
 ```{r ttr-calculate}
 # Group by poem before calculating
-# dfm_by_poem <- dfm_group(dfm_all, groups = interaction(poet, poem))
+dfm_by_poem <- dfm_group(dfm_all, groups = interaction(poet, poem))
 
 # Calculate TTR
 # ttr_results <- textstat_lexdiv(dfm_by_poem, measure = "TTR")
-# mtld_results <- textstat_lexdiv(dfm_by_poem, measure = "MTLD")
+#mtld_results <- textstat_lexdiv(dfm_by_poem, measure = "MTLD")
 ```
 
 ### 4.4 Visualization
@@ -194,8 +196,7 @@ For **English (Baraka):** Use the NRC Emotion Lexicon (`tidytext::get_sentiments
 For **Arabic (Darwish):** This requires a dedicated Arabic sentiment lexicon. Options include:
 
 - **Arabic NRC Lexicon** (Mohammad et al.) — a translated version of NRC
-- **ASTD** (Arabic Sentiment Tweets Dataset)
-- **ArSentD-LEV** — if poems use Levantine dialect
+
 
 Document which lexicon is used and note any coverage gaps (words in the poem not found in the lexicon).
 

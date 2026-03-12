@@ -330,15 +330,247 @@ Like the acid vomit of the fire of Hell
 Who and Who and WHO who who
 Whoooo and Whooooooooooooooooooooo!"
 
+incident_raw <- "He came back and shot. He shot him. When he came
+back, he shot, and he fell, stumbling, past the
+shadow wood, down, shot, dying, dead, to full halt.
+
+At the bottom, bleeding, shot dead. He died then, there
+after the fall, the speeding bullet, tore his face
+and blood sprayed fine over the killer and the grey light.
+
+Pictures of the dead man, are everywhere. And his spirit
+sucks up the light. But he died in darkness darker than
+his soul and everything tumbled blindly with him dying
+
+down the stairs.
+
+We have no word
+
+on the killer, except he came back, from somewhere
+to do what he did. And shot only once into his victim's
+stare, and left him quickly when the blood ran out. We know
+
+the killer was skillful, quick, and silent, and that the victim
+probably knew him. Other than that, aside from the caked sourness
+of the dead man's expression, and the cool surprise in the fixture
+
+of his hands and fingers, we know nothing."
+
+notes_raw <- "African blues
+does not know me. Their steps, in sands
+of their own
+land. A country
+in black & white, newspapers
+blown down pavements
+of the world. Does
+not feel
+what I am.
+
+Strength
+
+in the dream, an oblique
+suckling of nerve, the wind
+throws up sand, eyes
+are something locked in
+hate, of hate, of hate, to
+walk abroad, they conduct
+their deaths apart
+from my own. Those
+heads, I call
+my 'people.'
+
+(And who are they. People. To concern
+
+myself, ugly man. Who
+you, to concern
+the white flat stomachs
+of maidens, inside houses
+dying. Black. Peeled moon
+light on my fingers
+move under
+her clothes. Where
+is her husband. Black
+words throw up sand
+to eyes, fingers of
+their private dead. Whose
+soul, eyes, in sand. My color
+is not theirs. Lighter, white man
+talk. They shy away. My own
+dead souls, my, so called
+people. Africa
+is a foreign place. You are
+as any other sad man here
+american."
+
+legacy_raw <- "In the south, sleeping against
+the drugstore, growling under
+the trucks and stoves, stumbling
+through and over the cluttered eyes
+of early mysterious night. Frowning
+drunk waving moving a hand or lash.
+Dancing kneeling reaching out, letting
+a hand rest in shadows. Squatting
+to drink or pee. Stretching to climb
+pulling themselves onto horses near
+where there was sea (the old songs
+lead you to believe). Riding out
+from this town, to another, where
+it is also black. Down a road
+where people are asleep. Towards
+the moon or the shadows of houses.
+Towards the songs' pretended sea."
+
+blackhearts_raw <- "For Malcolm's eyes, when they broke
+the face of some dumb white man, For
+Malcolm's hands raised to bless us
+all black and strong in his image
+of ourselves, For Malcolm's words
+fire darts, the victor's tireless
+thrusts, words hung above the world
+change as it may, he said it, and
+for this he was killed, for saying,
+and feeling, and being/ change, all
+collected hot in his heart, For Malcolm's
+heart, raising us above our filthy cities,
+for his stride, and his beat, and his address
+to the grey monsters of the world, For Malcolm's
+pleas for your dignity, black men, for your life,
+black man, for the filling of your minds
+with righteousness, For all of him dead and
+gone and vanished from us, and all of him which
+clings to our speech black god of our time.
+For all of him, and all of yourself, look up,
+black man, quit stuttering and shuffling, look up,
+black man, quit whining and stooping, for all of him,
+For Great Malcolm a prince of the earth, let nothing in us rest
+until we avenge ourselves for his death, stupid animals
+that killed him, let us never breathe a pure breath if
+we fail, and white men call us faggots till the end of
+the earth."
+
+blackart_raw <- "Poems are bullshit unless they are
+Teeth or trees or lemons piled
+On a step. Or black ladies dying
+Of men leaving nickel hearts
+Beating them down. Fuck poems
+And they are useful, would they shoot
+Come at you, love what you are,
+Breathe like wrestlers, or shudder
+Strangely after peeing. We want live
+Words of the hip world live flesh &
+Coursing blood. Hearts Brains
+Souls splintering fire. We want poems
+Like fists beating niggers out of Jocks
+Or dagger poems in the slimy bellies
+Of the owner-jews. Black poems to
+Smear on girdlemamma mulatto bitches
+Whose brains are red jelly stuck
+Between lizabeth taylor's toes. Stinking
+Whores! we want poems that kill.
+Assassin poems, Poems that shoot
+Guns. Poems that wrestle cops into alleys
+And take their weapons leaving them dead
+With tongues pulled out and sent to Ireland. Knockoff
+Poems for dope selling wops or slick halfwhite
+Politicians Airplane poems, rrrrrrrrrrrrrrrr
+Rrrrrrrrrrrrrrr . . .tuhtuhtuhtuhtuhtuhtuhtuhtuhtuh
+. . .rrrrrrrrrrrrrrrr . . . Setting fire and death to
+Whities ass. Look at the Liberal
+Spokesman for the jews clutch his throat
+& puke himself into eternity . . . rrrrrrrr
+There's a negroleader pinned to
+A bar stool in Sardi's eyeballs melting
+In hot flame Another negroleader
+On the steps of the white house one
+Kneeling between the sheriff's thighs
+Negotiating coolly for his people.
+Aggh . . . stumbles across the room . . .
+Put it on him, poem! Strip him naked
+To the world! Another bad poem cracking
+Steel knuckles in a jewlady's mouth
+Poem scream poison gas on beasts in green berets
+Clean out the world for virtue and love,
+Let there be no love poems written
+Until love can exist freely and
+Cleanly. Let Black people understand
+That they are the lovers and the sons
+Of warriors and sons
+Of warriors Are poems & poets &
+All the loveliness here in the world"
+
+we_americans_raw <- c(" Why is We Americans? Why is We Americans?
+
+Bu-de-daaaa. Bu-de-daaaa. Bu-de-daaaa. Bu-de-daaaa. Bu-do-do. Be-De-De-De-Bu-De-Bu-Bup-Boo-Boo.
+
+What I want is me. For real. I want me and my self. And what that is is what I be and what I see and feel and who is me in the. What it is, is who it is, and when it me its what is be….I’m gone be here, if I want, like I said, self determination, but I ain’t come from a foolish tribe, we wants the mule the land, you can make it three hundred years of blue chip stock in the entire operation. We want to be paid, in a central bank the average worker farmer wage for all those years we gave it free. Plus we want damages, for all the killings and the fraud, the lynchings, the missing justice, the lies and frame-ups, the unwarranted jailings, the tar and featherings, the character and race assassinations. historical slander, ugly caricatures, for every sambo, step and fechit flick, we want to be paid, for every hurtful thing you did or said. For all the land you took, for all the rapes, all the rosewoods and black wall streets you destroyed. All the mis-education, jobs loss, segregated shacks we lived in, the disease that ate and killed us, for all the mad police that drilled us. For all the music and dances you stole. The styles. The language. The hip clothes you copped. The careers you stopped. All these are suits, specific litigation, as represent we be like we, for reparations for damages paid to the Afro-American nation.
+
+Bu-de-daaaa. Bu-de-daaaa. Bu-de-daaaa.
+
+We want education for all of us and anyone else in the black belt hurt by slavery. For all the native peoples even them poor white people you show all the time as funny, all them abners and daisy maes, them Beverly Hill Billies who never got to no beverly hills. who never got to Harvard on they grandfathers wills. we want reparations for them, right on, for the Mexicans whose land you stole. For all of North Mexico you call Texas, Arizona, California, New Mexico, Colorado, all that, all that, all that, all that, Bu-de-daaaa do do bap bap bap baaa du de do.
+All that you gotta give up, autonomy and reparations. To the Chicanos, and the Native Americans, who souls you ripped out with their land, give Self-Determination, Regional autonomy, that’s what my we is askin, and they gon do the same. when they demand it, like us again, in they own exploited name. Yeh the education that’s right two hundred…years. We want a central stash, a central bank, with democratically elected trustees, and a board elected by us all, to map out, from the referendum we set up, what we want to spend it on. To build that Malcolm sense Self-Determination as Self-Reliance and Self Respect and Self Defense, the will of what the good Dr. Du Bois beat on – true self consciousness. Simply the psychology of Freedom.
+
+Bu-de-daaaa Bu-de-daaaa Pu de-daaaa Pu de-daaaa bap bap bap bap bu de bu de bu de bu bu.
+
+Then we can talk about bein American. Then we can listen – then we can listen without the undercurrent of desire to first set your ass on fire. We will only talk of voluntary unity, of autonomy, as vective arms of self-determination. If there is democracy in you that is where it will be shown. this is the only way we is Americans. This is the only truth that can be told. OTHERWISE there is no future between us but war. And we is rather lovers and singers and dancers and poets and drummers and actors and runners and elegant heartbeats of the suns flame….but we is also to the end of our silence and sitdown. We is at the end of being under your ignorant smell your intentional hell. Either give us our lives or plan to forfeit your own.")
+
+survive_raw <- c("Who will survive in America?
+Few Americans
+Very few Negroes
+No crackers at all
+
+Will you survive in America
+With your 20 cent habit?
+Yo, 4-bag Jones, will you
+Survive in the heat and fire
+Of actual change? I doubt it
+
+Will you survive, woman? Or will your nylon wig
+Catch afire at midnight and light up Stirling Street
+And your assprints on the pavement. Grease melting in this
+Brother's eyes, his profile shot up by a Simba thinking
+Who was coming around the corner was really Tony Curtis
+And not a misguided brother, got his mind hanging out with Italians
+
+Who will survive?
+The black future will
+You can't with the fat stomach between your ears
+Scraping nickels out the inside of nigger daydreams
+Few Americans
+Very few Negroes...maybe no Red Negroes at all
+
+The stiffbacked chalklady baptist, in blue lace
+If she shrinks from blackness in front of the church
+Following the wedding of the yellow robots
+Will not survive. She is old anyway, and they're moving
+Her church in the wind
+Old people? No
+Christians? No
+First Negroes to be invisible to Truth, 1944, Minnesota? No
+Nothing of that will be anywhere
+It will be burned clean
+It might sink and steam up the sea. America might
+And no Americans, very few Negroes, will get out
+No crackers at all
+But the black man will survive America
+His survival will mean the death of America
+Survive Blackman! Survive Blackman! Survive Blackman!
+(Black woman too)
+Let us all survive, who need to OK?
+And we wish each other luck!")
+
+
 # tibble with clean text
 baraka_poems <- tibble(
   poet = "Amiri Baraka",
-  poem = c("SOS", "Ka'Ba", "Somebody Blew Up America"),
-  text = map_chr(list(sos_raw, kaba_raw, somebody_raw), clean_poem)
+  poem = c("SOS", "Ka'Ba", "Somebody Blew Up America", "Incident", "Notes for a Speech",
+           "Legacy", "A Poem for Black Hearts", "Black Art", "Why are we Americans", 
+           "Who will survive America"),
+  text = map_chr(list(sos_raw, kaba_raw, somebody_raw, incident_raw, notes_raw, 
+                      legacy_raw, blackhearts_raw, blackart_raw, we_americans_raw, survive_raw), clean_poem)
 )
 
 
-# creating dtaatset where each row is one one line, with line number within poem
+# creating datatset where each row is one one line, with line number within poem
 baraka_lines <- baraka_poems |>
   mutate(lines = map(text, ~ str_split(.x, "\n")[[1]])) |>
   unnest(lines) |>
@@ -352,4 +584,6 @@ baraka_lines <- baraka_poems |>
 #https://genius.com/Amiri-baraka-somebody-blew-up-america-annotated
 #https://genius.com/Amiri-baraka-sos-annotated
 #https://www.becauseofthemwecan.com/5-must-read-poems-by-amiri-baraka-that-will-change-your-outlook-on-life-forever/
-
+#https://www.poemhunter.com/amiri-baraka/#google_vignette
+#https://genius.com/Amiri-baraka-a-poem-for-black-hearts-annotated
+# https://genius.com/Amiri-baraka-black-art-annotated
