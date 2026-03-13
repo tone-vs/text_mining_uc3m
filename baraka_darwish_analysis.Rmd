@@ -1,279 +1,1172 @@
 ---
-title: "Voices of Resistance: A Comparative Text Analysis of Amiri Baraka and Mahmoud Darwish"
-author: ""
+title: "The Poetry of Resistance: A Cross-Linguistic Text Mining Analysis"
+subtitle: "Mahmoud Darwish (Arabic) vs. Amiri Baraka (English)"
 date: "`r Sys.Date()`"
 output:
   html_document:
     toc: true
-    toc_float: true
-    theme: cosmo
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    theme: flatly
+    code_folding: hide
+    css: style.css
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(
+  echo = TRUE, message = FALSE, warning = FALSE,
+  fig.width = 10, fig.height = 6, fig.align = "center",
+  dev = if (requireNamespace("ragg", quietly = TRUE)) "ragg_png" else "png",
+  dpi = 150
+)
+```
+
+<div class="project-header">
+<div class="team-card">
+<h4>Team</h4>
+<ul>
+<li><span class="member-name">Abdullah Tadmuri</span></li>
+<li><span class="member-name">Maiheliya Maimaitimin</span></li>
+<li><span class="member-name">Tone Varberg Sabri</span></li>
+</ul>
+<div class="course-line">Text Mining Final Project &middot; UC3M &middot; 2025&ndash;2026</div>
+</div>
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-number">28</div>
+<div class="stat-label">Poems Analyzed</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">10</div>
+<div class="stat-label">Techniques Used</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">2</div>
+<div class="stat-label">Languages</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">14</div>
+<div class="stat-label">Poems per Poet</div>
+</div>
+</div>
+</div>
+
+# 1. Introduction
+
+Comparing poets who write in different languages requires text mining techniques
+that can bridge linguistic boundaries. This study takes on that challenge by
+analyzing two canonical resistance poets from distinct traditions: **Mahmoud
+Darwish** (1941--2008), the Palestinian national poet who wrote in Arabic, and
+**Amiri Baraka** (1934--2014), the African-American poet and activist who wrote
+in English.
+
+Both poets use verse as a tool for collective resistance, though they address
+different struggles. Darwish's poetry centers on Palestinian dispossession, exile,
+and the longing for homeland, while Baraka's work confronts anti-Black racism,
+celebrates Black identity, and calls for revolutionary change.
+
+The central question of this analysis is: **How do these two resistance poets
+compare in their emotional expression, lexical diversity, and structural patterns?**
+A bilingual corpus poses methodological challenges, since Arabic and English words
+cannot be directly compared. We address this by selecting techniques that either
+produce language-independent numeric outputs (NRC emotion scores, TTR, sparsity) or
+run separately per poet for visual side-by-side comparison (word frequency, bigram
+networks, TF-IDF, sentiment arcs, pairwise correlation).
+
+Our corpus contains **14 poems per poet** (28 total), drawn from different periods
+of each poet's career. Darwish's poems are kept in their original Arabic, with
+full diacritics normalization applied. We apply ten text mining techniques:
+NRC sentiment analysis, radar charts, poem-emotion heatmaps, sentiment arcs,
+TF-IDF, lexical diversity (TTR, MATTR), sparsity, word frequency, bigram
+networks, and pairwise word correlation.
+
+
+# 2. Setup and Data
+
+## 2.1 Packages
+
+```{r packages}
 library(tidyverse)
-library(quanteda)
 library(tidytext)
-library(arabicStemR)  # for Arabic morphological processing
+library(textdata)
+library(fmsb)
+library(quanteda)
+library(quanteda.textstats)
+library(quanteda.textplots)
+library(wordcloud)
+library(reshape2)
+library(igraph)
+library(ggraph)
+library(widyr)
+library(RColorBrewer)
+library(scales)
+library(knitr)
+library(ggwordcloud)
+library(patchwork)
 ```
 
----
+## 2.2 Load Poem Data
 
-LOOK AT SPARCITY AS WELL. 
-## 1. Introduction
+```{r load-data}
+source("darwish_dataset.R")
+source("Baraka_dataset.R")
 
-This analysis undertakes a computational comparison of six poems — three by the Palestinian poet **Mahmoud Darwish** (in Arabic) and three by the African-American poet **Amiri Baraka** (in English). Both poets are canonical voices of political resistance, but they operate in different languages, traditions, and geopolitical contexts. The central question driving this analysis is:
+# Harmonize: add poem_id to Baraka, add English poet name to both
+baraka_poems <- baraka_poems %>%
+  mutate(poem_id = row_number(),
+         poet_en = "Amiri Baraka")
 
-> **Does the linguistic and structural nature of Arabic versus English shape how anger, defiance, and hope are expressed in resistance poetry?**
+darwish_poems <- darwish_poems %>%
+  mutate(poet_en = "Mahmoud Darwish")
 
-We approach this question through two primary analytical lenses: **lexical diversity** and **sentiment trajectory**.
+# Combined tibble for cross-poet numeric comparisons
+all_poems <- bind_rows(
+  darwish_poems %>% select(poet_en, poem_id, poem, text),
+  baraka_poems  %>% select(poet_en, poem_id, poem, text)
+)
 
-### 1.2 downloading NRC arabic library
+cat("Darwish poems:", nrow(darwish_poems), "\n")
+cat("Baraka poems:", nrow(baraka_poems), "\n")
+```
 
-```{r}
-# Step 2: Load it as a custom lexicon
-nrc_arabic <- read_tsv("NRC-Emotion-Lexicon/NRC-Emotion-Lexicon-ForVariousLanguages.txt") %>%
-  select(word = `Arabic`,
-         anger, anticipation, disgust, fear,
-         joy, negative, positive, sadness, surprise, trust) %>%
-  pivot_longer(
-    cols = -word,
-    names_to = "sentiment",
-    values_to = "value"
-  ) %>%
+## 2.3 Stopword Preparation
+
+Arabic stopwords must be normalized with the same function used on the poems
+(diacritics removal, alif/ya/ta-marbuta normalization). We also add common Arabic
+function words missing from the default list and filter out onomatopoeia fragments
+from Baraka's poems.
+
+```{r stopwords}
+# Arabic normalization (same as clean_poem in darwish_dataset.R)
+normalize_ar <- function(text) {
+  text <- stringr::str_remove_all(text, "[\\u064B-\\u065F\\u0670]")
+  text <- stringr::str_replace_all(text, "ـ", "")
+  text <- stringr::str_replace_all(text, "[إأآٱ]", "ا")
+  text <- stringr::str_replace_all(text, "ى", "ي")
+  text <- stringr::str_replace_all(text, "ة", "ه")
+  text <- stringr::str_replace_all(text, "ؤ", "و")
+  text <- stringr::str_replace_all(text, "ئ", "ي")
+  text
+}
+
+# Normalize the default Arabic stopwords
+ar_stops_base <- normalize_ar(stopwords::stopwords("ar", source = "misc"))
+
+# Extended custom Arabic stopwords (common function words missing from default)
+ar_stops_custom <- normalize_ar(c(
+  "على", "أنا", "يا", "أن", "ما", "لا", "إلى", "هذا", "هذه", "ذلك",
+  "التي", "الذي", "كان", "كانت", "عن", "بين", "حين", "بعد", "قبل",
+  "فوق", "تحت", "حتى", "إذا", "لكن", "ولكن", "أو", "ثم", "كي",
+  "لكي", "منه", "منها", "فيه", "فيها", "عليه", "عليها", "إنه", "إنها",
+  "أنت", "أنتِ", "نحن", "هم", "لي", "لنا", "لهم", "بها", "به",
+  "كل", "بعض", "كيف", "أين", "متى", "لماذا", "هل", "قد", "سوف",
+  "كأن", "مثل", "أيها", "وراء", "أمام", "إلا", "أما",
+  "ولم", "لكنني", "ولكنني", "كنت", "كنا", "كان", "ليس",
+  "الذين", "اللذين", "واو", "فاء"
+))
+
+ar_stops <- unique(c(ar_stops_base, ar_stops_custom))
+cat("Total Arabic stopwords (normalized):", length(ar_stops), "\n")
+
+# Custom Baraka stopwords (onomatopoeia fragments)
+baraka_custom_stops <- c("bu", "de", "daaaa", "bap", "boo", "bup",
+                         "pu", "daaaa", "rrrrrrrrrrrrrrr", "rrrrrrrr",
+                         "tuhtuhtuhtuhtuhtuhtuhtuhtuhtuh", "aggh",
+                         "whoooo", "whooooooooooooooooooooo")
+
+# Unified English stopwords (tidytext + stopwords package + custom noise)
+en_stops <- unique(c(stop_words$word, stopwords::stopwords("en"), baraka_custom_stops))
+```
+
+## 2.4 Load NRC Multilingual Emotion Lexicon
+
+The NRC Emotion Lexicon (Mohammad & Turney, 2013) maps words in 100+ languages to
+8 emotions (anger, anticipation, disgust, fear, joy, sadness, surprise, trust) plus
+positive/negative sentiment. Because both Arabic and English words are mapped to the
+same emotion categories, this serves as the bridge for cross-language comparison.
+
+```{r nrc-lexicon}
+nrc_raw <- read_tsv(
+  "NRC-Emotion-Lexicon/NRC-Emotion-Lexicon-ForVariousLanguages.txt",
+  show_col_types = FALSE
+)
+
+emotion_cols <- c("anger", "anticipation", "disgust", "fear",
+                  "joy", "negative", "positive", "sadness",
+                  "surprise", "trust")
+
+# English NRC lexicon
+nrc_english <- nrc_raw %>%
+  select(`English Word`, all_of(emotion_cols)) %>%
+  pivot_longer(all_of(emotion_cols),
+               names_to = "sentiment", values_to = "value") %>%
   filter(value == 1) %>%
-  select(word, sentiment)
+  select(word = `English Word`, sentiment) %>%
+  distinct()
+
+# Arabic NRC lexicon
+nrc_arabic <- nrc_raw %>%
+  select(Arabic, all_of(emotion_cols)) %>%
+  pivot_longer(all_of(emotion_cols),
+               names_to = "sentiment", values_to = "value") %>%
+  filter(value == 1) %>%
+  select(word = Arabic, sentiment) %>%
+  distinct()
+
+cat("English NRC entries:", nrow(nrc_english), "\n")
+cat("Arabic NRC entries:", nrow(nrc_arabic), "\n")
 ```
+
+## 2.5 Corpus Overview
+
+```{r corpus-overview}
+corpus_stats <- all_poems %>%
+  mutate(
+    word_count = str_count(text, "\\S+"),
+    line_count = str_count(text, "\n") + 1
+  ) %>%
+  group_by(poet_en) %>%
+  summarise(
+    poems = n(),
+    total_words = sum(word_count),
+    mean_words = round(mean(word_count)),
+    median_words = round(median(word_count)),
+    total_lines = sum(line_count),
+    .groups = "drop"
+  )
+
+kable(corpus_stats,
+      col.names = c("Poet", "Poems", "Total Words", "Mean Words",
+                     "Median Words", "Total Lines"),
+      caption = "Corpus summary statistics")
+```
+
+
+# 3. Analysis
+
+## 3.1 NRC Sentiment and Emotion Analysis
+
+This technique assigns emotion labels to every word in each poem using the NRC
+Emotion Lexicon. Because the lexicon provides parallel entries for Arabic and
+English words mapped to the same emotions, we can directly compare emotional
+profiles across languages. We tokenize each poet's poems separately, join to the
+appropriate language lexicon, count emotion matches, and normalize by total matched
+words per poem to account for length differences.
+
+```{r sentiment-tokenize}
+# Tokenize and join to NRC -- Darwish (Arabic)
+darwish_tokens_nrc <- darwish_poems %>%
+  unnest_tokens(word, text) %>%
+  inner_join(nrc_arabic, by = "word", relationship = "many-to-many")
+
+# Tokenize and join to NRC -- Baraka (English)
+baraka_tokens_nrc <- baraka_poems %>%
+  unnest_tokens(word, text) %>%
+  inner_join(nrc_english, by = "word", relationship = "many-to-many")
+
+# Report match rates
+darwish_total <- darwish_poems %>% unnest_tokens(word, text) %>% nrow()
+baraka_total  <- baraka_poems %>% unnest_tokens(word, text) %>% nrow()
+
+cat("Darwish: ", nrow(darwish_tokens_nrc), "emotion matches from",
+    darwish_total, "total tokens (",
+    round(100 * n_distinct(darwish_tokens_nrc$word) /
+            n_distinct(darwish_poems %>% unnest_tokens(word, text) %>% pull(word)), 1),
+    "% unique words matched)\n")
+cat("Baraka: ", nrow(baraka_tokens_nrc), "emotion matches from",
+    baraka_total, "total tokens (",
+    round(100 * n_distinct(baraka_tokens_nrc$word) /
+            n_distinct(baraka_poems %>% unnest_tokens(word, text) %>% pull(word)), 1),
+    "% unique words matched)\n")
+```
+
+```{r sentiment-aggregate}
+# Aggregate emotion counts per poem
+darwish_emotions <- darwish_tokens_nrc %>%
+  count(poem, sentiment) %>%
+  group_by(poem) %>%
+  mutate(proportion = n / sum(n)) %>%
+  ungroup() %>%
+  mutate(poet = "Mahmoud Darwish")
+
+baraka_emotions <- baraka_tokens_nrc %>%
+  count(poem, sentiment) %>%
+  group_by(poem) %>%
+  mutate(proportion = n / sum(n)) %>%
+  ungroup() %>%
+  mutate(poet = "Amiri Baraka")
+
+all_emotions <- bind_rows(darwish_emotions, baraka_emotions)
+```
+
+```{r sentiment-barplot, fig.height=7}
+# Average emotion proportion by poet
+emotion_summary <- all_emotions %>%
+  group_by(poet, sentiment) %>%
+  summarise(avg_prop = mean(proportion), .groups = "drop")
+
+ggplot(emotion_summary,
+       aes(x = reorder(sentiment, avg_prop), y = avg_prop, fill = poet)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  scale_fill_brewer(palette = "Set1") +
+  scale_y_continuous(labels = percent_format()) +
+  labs(title = "Emotional Profile: Darwish vs. Baraka",
+       subtitle = "Average proportion across all poems per poet",
+       x = "Emotion / Sentiment", y = "Average Proportion",
+       fill = "Poet") +
+  theme_minimal(base_size = 13)
+```
+
+```{r sentiment-facet, fig.height=8}
+# Only the 8 core emotions (exclude positive/negative)
+core_emotions <- c("anger", "anticipation", "disgust", "fear",
+                   "joy", "sadness", "surprise", "trust")
+
+all_emotions %>%
+  filter(sentiment %in% core_emotions) %>%
+  group_by(poet, sentiment) %>%
+  summarise(avg_prop = mean(proportion),
+            sd_prop  = sd(proportion), .groups = "drop") %>%
+  ggplot(aes(x = sentiment, y = avg_prop, fill = poet)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  geom_errorbar(aes(ymin = pmax(avg_prop - sd_prop, 0),
+                    ymax = avg_prop + sd_prop),
+                position = position_dodge(width = 0.8), width = 0.25) +
+  scale_fill_brewer(palette = "Set1") +
+  scale_y_continuous(labels = percent_format()) +
+  labs(title = "Core Emotion Comparison (8 Emotions)",
+       subtitle = "Mean +/- SD across poems",
+       x = NULL, y = "Proportion", fill = "Poet") +
+  theme_minimal(base_size = 13) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+Both poets share sadness and fear as their two dominant emotions, but the
+distributions differ. Darwish's profile is led by sadness (13.6%) and fear (13.1%),
+with surprise (11.9%) ranking third -- a pattern consistent with exile poetry,
+where loss and uncertainty dominate. Baraka's top emotion is fear (12.6%), followed
+by sadness (10.3%) and anger (10.2%); his anger score is notably close to his
+sadness, reflecting a more confrontational register. Darwish's joy score (4.6%) is
+roughly half of Baraka's (8.7%), suggesting a darker emotional baseline in the
+Arabic corpus.
+
+
+## 3.2 Lexical Diversity: TTR and MATTR
+
+Type-Token Ratio (TTR) measures the proportion of unique words (types) relative to
+total words (tokens) in a text. A higher TTR indicates more diverse vocabulary,
+while a lower TTR suggests more repetition. Because TTR is a pure ratio computed
+*within* each text, it is language-independent: a Darwish poem with TTR = 0.80 and
+a Baraka poem with TTR = 0.65 are directly comparable.
+
+Simple TTR is sensitive to text length (longer texts tend to have lower TTR), so we
+also compute the Moving-Average TTR (MATTR), which uses a sliding window to provide
+a more robust estimate across texts of varying length.
+
+```{r ttr-compute}
+# Build quanteda corpora with appropriate stopwords
+darwish_corpus <- corpus(darwish_poems, text_field = "text",
+                         docid_field = "poem")
+baraka_corpus  <- corpus(baraka_poems, text_field = "text",
+                         docid_field = "poem")
+
+# Tokenize and remove stopwords (normalized for Arabic)
+darwish_toks <- tokens(darwish_corpus, remove_punct = TRUE,
+                       remove_numbers = TRUE) %>%
+  tokens_remove(ar_stops) %>%
+  tokens_select(min_nchar = 2)
+
+baraka_toks <- tokens(baraka_corpus, remove_punct = TRUE,
+                      remove_numbers = TRUE) %>%
+  tokens_remove(en_stops) %>%
+  tokens_select(min_nchar = 3)
+
+# DFM
+darwish_dfm <- dfm(darwish_toks)
+baraka_dfm  <- dfm(baraka_toks)
+
+# Lexical diversity — TTR from DFM, MATTR from tokens
+darwish_ttr   <- textstat_lexdiv(darwish_dfm, measure = "TTR")
+darwish_mattr <- textstat_lexdiv(darwish_toks, measure = "MATTR")
+darwish_div   <- left_join(darwish_ttr, darwish_mattr, by = "document") %>%
+  mutate(poet = "Mahmoud Darwish")
+
+baraka_ttr   <- textstat_lexdiv(baraka_dfm, measure = "TTR")
+baraka_mattr <- textstat_lexdiv(baraka_toks, measure = "MATTR")
+baraka_div   <- left_join(baraka_ttr, baraka_mattr, by = "document") %>%
+  mutate(poet = "Amiri Baraka")
+
+all_div <- bind_rows(darwish_div, baraka_div)
+```
+
+```{r ttr-boxplot, fig.height=5}
+# TTR boxplot
+ggplot(all_div, aes(x = poet, y = TTR, fill = poet)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.6, size = 2.5) +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Lexical Diversity: Type-Token Ratio (TTR)",
+       subtitle = "Each point is one poem",
+       y = "TTR (unique words / total words)", x = NULL) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+```
+
+```{r mattr-boxplot, fig.height=5}
+# MATTR boxplot
+ggplot(all_div, aes(x = poet, y = MATTR, fill = poet)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.6, size = 2.5) +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Lexical Diversity: Moving-Average TTR (MATTR)",
+       subtitle = "More robust to poem length variation (window = 100 tokens)",
+       y = "MATTR", x = NULL) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none")
+```
+
+```{r ttr-table}
+# Summary statistics
+div_summary <- all_div %>%
+  group_by(poet) %>%
+  summarise(
+    mean_TTR   = round(mean(TTR, na.rm = TRUE), 3),
+    median_TTR = round(median(TTR, na.rm = TRUE), 3),
+    sd_TTR     = round(sd(TTR, na.rm = TRUE), 3),
+    mean_MATTR   = round(mean(MATTR, na.rm = TRUE), 3),
+    median_MATTR = round(median(MATTR, na.rm = TRUE), 3),
+    sd_MATTR     = round(sd(MATTR, na.rm = TRUE), 3),
+    .groups = "drop"
+  )
+
+kable(div_summary,
+      col.names = c("Poet", "Mean TTR", "Median TTR", "SD TTR",
+                     "Mean MATTR", "Median MATTR", "SD MATTR"),
+      caption = "Lexical diversity summary by poet")
+```
+
+Darwish's mean TTR (0.805) slightly exceeds Baraka's (0.796), though Arabic
+morphology -- which generates more distinct surface forms through prefixes and
+suffixes -- likely inflates this figure. MATTR tells a slightly different story:
+Baraka's mean MATTR (0.879) edges past Darwish's (0.854), suggesting comparable
+diversity once text length is controlled for. The outliers are more telling than the
+averages. Baraka's "SOS" has a TTR of just 0.27, driven by its heavy use of
+onomatopoeia and repetitive incantation. Darwish's lowest-TTR poem is "Passers in
+Passing Words" (0.63), where the deliberate anaphoric repetition of key phrases is
+a rhetorical strategy, not a vocabulary limitation.
+
+
+## 3.3 Sparsity and DFM Analysis
+
+Sparsity measures the proportion of zeros in a Document-Feature Matrix (DFM). High
+sparsity means most words appear in very few poems, indicating a vocabulary that is
+spread thinly across the corpus. Lower sparsity means more shared vocabulary across
+poems. This metric is computed within each poet's sub-corpus, making it comparable
+across languages.
+
+```{r sparsity-compute}
+# Overall sparsity per poet
+darwish_sparsity <- round(sparsity(darwish_dfm) * 100, 1)
+baraka_sparsity  <- round(sparsity(baraka_dfm) * 100, 1)
+
+# DFM dimensions
+dfm_stats <- tibble(
+  Poet = c("Mahmoud Darwish", "Amiri Baraka"),
+  Documents = c(ndoc(darwish_dfm), ndoc(baraka_dfm)),
+  Features  = c(nfeat(darwish_dfm), nfeat(baraka_dfm)),
+  `Features per Doc` = round(c(nfeat(darwish_dfm) / ndoc(darwish_dfm),
+                                nfeat(baraka_dfm) / ndoc(baraka_dfm))),
+  `Sparsity (%)` = c(darwish_sparsity, baraka_sparsity)
+)
+
+kable(dfm_stats,
+      col.names = c("Poet", "Documents", "Features", "Features per Doc", "Sparsity (%)"),
+      caption = "Document-Feature Matrix comparison")
+```
+
+```{r sparsity-trim, fig.height=5}
+# Sparsity at different trim levels
+trim_levels <- seq(0, 0.5, by = 0.05)
+
+sparsity_by_trim <- map_dfr(trim_levels, function(min_df) {
+  d_trim <- dfm_trim(darwish_dfm, min_docfreq = max(min_df, 0.01),
+                     docfreq_type = "prop")
+  b_trim <- dfm_trim(baraka_dfm, min_docfreq = max(min_df, 0.01),
+                     docfreq_type = "prop")
+  tibble(
+    min_docfreq = min_df,
+    Darwish_sparsity = ifelse(nfeat(d_trim) > 0, sparsity(d_trim), NA_real_),
+    Baraka_sparsity  = ifelse(nfeat(b_trim) > 0, sparsity(b_trim), NA_real_),
+    Darwish_features = nfeat(d_trim),
+    Baraka_features  = nfeat(b_trim)
+  )
+})
+
+sparsity_by_trim %>%
+  select(min_docfreq, Darwish_sparsity, Baraka_sparsity) %>%
+  pivot_longer(-min_docfreq, names_to = "poet", values_to = "sparsity") %>%
+  mutate(poet = str_remove(poet, "_sparsity")) %>%
+  ggplot(aes(x = min_docfreq, y = sparsity, color = poet)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2.5) +
+  scale_color_brewer(palette = "Set1") +
+  scale_x_continuous(labels = percent_format()) +
+  labs(title = "Sparsity vs. Minimum Document Frequency Threshold",
+       subtitle = "How sparsity changes as rare terms are progressively removed",
+       x = "Minimum Document Frequency (proportion of poems)",
+       y = "Sparsity", color = "Poet") +
+  theme_minimal(base_size = 13)
+```
+
+```{r topfeatures}
+# Top features per poet as formatted tables
+darwish_top15 <- topfeatures(darwish_dfm, n = 15)
+baraka_top15  <- topfeatures(baraka_dfm, n = 15)
+
+kable(
+  tibble(Word = names(darwish_top15), Count = unname(darwish_top15)),
+  caption = "Top 15 features: Darwish (after stopword removal)"
+)
+kable(
+  tibble(Word = names(baraka_top15), Count = unname(baraka_top15)),
+  caption = "Top 15 features: Baraka (after stopword removal)"
+)
+```
+
+Darwish's DFM sparsity (92.1%) is slightly higher than Baraka's (91.4%), meaning
+that a given word in Darwish's corpus is less likely to appear across multiple poems.
+Arabic morphology contributes to this gap: different inflected forms of the same root
+are treated as separate features. The trim analysis shows how rapidly sparsity drops
+when rare terms are removed, confirming that both corpora have a long tail of words
+used in only one or two poems.
+
+
+## 3.4 Word Frequency Analysis
+
+Word frequency analysis counts the most common words after removing stopwords,
+revealing the core thematic vocabulary of each poet. Since Arabic and English words
+cannot be compared directly, we display each poet's top words separately in a
+side-by-side visualization.
+
+```{r word-freq}
+# Darwish word frequencies (using normalized Arabic stopwords)
+darwish_words <- darwish_poems %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% ar_stops,
+         str_length(word) > 1) %>%
+  count(word, sort = TRUE)
+
+# Baraka word frequencies (using unified English stopwords)
+baraka_words <- baraka_poems %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% en_stops,
+         str_length(word) > 2) %>%
+  count(word, sort = TRUE)
+```
+
+```{r freq-barplot, fig.height=7}
+top_d <- darwish_words %>% slice_max(n, n = 15) %>%
+  mutate(poet = "Mahmoud Darwish")
+top_b <- baraka_words %>% slice_max(n, n = 15) %>%
+  mutate(poet = "Amiri Baraka")
+
+bind_rows(top_d, top_b) %>%
+  ggplot(aes(x = reorder_within(word, n, poet), y = n, fill = poet)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~poet, scales = "free") +
+  coord_flip() +
+  scale_x_reordered() +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Top 15 Most Frequent Words by Poet",
+       subtitle = "After stopword removal",
+       x = NULL, y = "Count") +
+  theme_minimal(base_size = 13)
+```
+
+```{r wordclouds, fig.height=10, fig.width=16}
+wc_data <- bind_rows(
+  darwish_words %>% slice_max(n, n = 80) %>% mutate(poet = "Mahmoud Darwish"),
+  baraka_words  %>% slice_max(n, n = 80) %>% mutate(poet = "Amiri Baraka")
+)
+
+ggplot(wc_data, aes(label = word, size = n, color = n)) +
+  geom_text_wordcloud_area(rm_outside = TRUE, shape = "circle") +
+  scale_size_area(max_size = 24) +
+  scale_color_gradient(low = "darkgreen", high = "darkred") +
+  facet_wrap(~poet, scales = "free") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Word Clouds: Darwish vs. Baraka",
+       subtitle = "Top 80 words after stopword removal")
+```
+
+Darwish's most frequent content words after stopword removal are "look out" (اطل),
+"and I" (وانا), "my father" (ابي), "the sea" (البحر), and "and you" (وانت) -- a
+vocabulary rooted in the self, landscape, family, and address. Baraka's top words -- "black," "people,"
+"killed," "poems," "world" -- reflect a vocabulary oriented toward collective
+identity and violence. The contrast is stark: Darwish's lexicon is intimate and
+geographic, while Baraka's is communal and confrontational.
+
+
+## 3.5 Bigram Network Graph
+
+Bigram analysis extracts consecutive word pairs and visualizes them as network
+graphs, where nodes represent words and edges connect words that appear together.
+This reveals phrase structure, recurring collocations, and rhetorical patterns.
+As with word frequency, bigrams are language-specific and must be analyzed
+separately per poet.
+
+```{r bigrams}
+# Darwish bigrams (normalized Arabic stopwords)
+darwish_bigrams <- darwish_poems %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% ar_stops, !word2 %in% ar_stops,
+         str_length(word1) > 1, str_length(word2) > 1) %>%
+  count(word1, word2, sort = TRUE)
+
+# Baraka bigrams (unified English stopwords)
+baraka_bigrams <- baraka_poems %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter(!word1 %in% en_stops, !word2 %in% en_stops,
+         str_length(word1) > 2, str_length(word2) > 2) %>%
+  count(word1, word2, sort = TRUE)
+
+cat("Darwish unique bigrams:", nrow(darwish_bigrams), "\n")
+cat("Baraka unique bigrams:", nrow(baraka_bigrams), "\n")
+```
+
+```{r bigram-table}
+kable(head(darwish_bigrams, 10),
+      col.names = c("Word 1", "Word 2", "Count"),
+      caption = "Top 10 Darwish bigrams (after stopword removal)")
+kable(head(baraka_bigrams, 10),
+      col.names = c("Word 1", "Word 2", "Count"),
+      caption = "Top 10 Baraka bigrams (after stopword removal)")
+```
+
+```{r bigram-network, fig.height=8, fig.width=14}
+# Network plotting function
+plot_bigram_network <- function(bigram_counts, title_text,
+                                 n_edges = 25, min_n = 2) {
+  graph_data <- bigram_counts %>%
+    filter(n >= min_n) %>%
+    slice_max(n, n = n_edges)
+
+  if (nrow(graph_data) == 0) {
+    # If no bigrams meet threshold, lower it
+    graph_data <- bigram_counts %>% slice_max(n, n = n_edges)
+  }
+
+  graph <- graph_from_data_frame(graph_data)
+
+  ggraph(graph, layout = "fr") +
+    geom_edge_link(
+      aes(edge_alpha = n, edge_width = n),
+      show.legend = FALSE,
+      arrow = arrow(type = "closed", length = unit(0.12, "inches")),
+      end_cap = circle(3, "mm")
+    ) +
+    geom_node_point(color = "steelblue", size = 5, alpha = 0.8) +
+    geom_node_text(aes(label = name), vjust = 1.2, hjust = 0.5,
+                   size = 3.5, check_overlap = TRUE) +
+    theme_void(base_size = 13) +
+    labs(title = title_text)
+}
+
+# Side-by-side networks
+set.seed(42)
+p_darwish <- plot_bigram_network(darwish_bigrams,
+                                  "Darwish: Bigram Network",
+                                  n_edges = 30, min_n = 2)
+p_baraka  <- plot_bigram_network(baraka_bigrams,
+                                  "Baraka: Bigram Network",
+                                  n_edges = 30, min_n = 2)
+
+p_darwish + p_baraka +
+  plot_annotation(
+    title = "Bigram Network Graphs: Darwish vs. Baraka",
+    subtitle = "Nodes = words, edges = consecutive word pairs (after stopword removal)",
+    theme = theme(plot.title = element_text(size = 16, face = "bold"))
+  )
+```
+
+Baraka's top bigram is "black people," which functions as both subject and rallying
+cry across multiple poems. His network also shows the striking pair "survive
+blackman / blackman survive" -- a chiastic repetition typical of his incantatory
+style. Darwish's top bigrams include "think of others" (فكر بغيرك, also a poem
+title used as a refrain) and "passing words" (الكلمات العابره). Where Baraka's
+network clusters tightly around racial identity, Darwish's spreads across
+landscape and temporal imagery.
+
+
+## 3.6 Radar Chart: Emotion Profile Comparison
+
+A radar (spider) chart places both poets' average emotion proportions on the same
+radial axes, making it immediately visible where one poet dominates and where they
+converge. This is the single most informative cross-linguistic visualization in our
+analysis.
+
+```{r radar-chart, fig.height=7, fig.width=8}
+# Prepare data in fmsb format: one row per poet, columns = emotions
+radar_data <- all_emotions %>%
+  filter(sentiment %in% core_emotions) %>%
+  group_by(poet, sentiment) %>%
+  summarise(avg = mean(proportion), .groups = "drop") %>%
+  pivot_wider(names_from = sentiment, values_from = avg)
+
+# fmsb requires: row1 = max, row2 = min, then data rows
+radar_max <- rep(max(unlist(radar_data[, -1])) * 1.15, 8)
+radar_min <- rep(0, 8)
+
+radar_df <- rbind(radar_max, radar_min, radar_data[, -1])
+rownames(radar_df) <- c("max", "min", radar_data$poet)
+
+# Plot
+colors_fill <- c(rgb(0.8, 0.2, 0.2, 0.25), rgb(0.2, 0.4, 0.8, 0.25))
+colors_line <- c(rgb(0.8, 0.2, 0.2, 0.9),  rgb(0.2, 0.4, 0.8, 0.9))
+
+radar_max_val <- max(unlist(radar_data[, -1])) * 1.15
+radarchart(radar_df,
+           axistype = 1,
+           pcol = colors_line, pfcol = colors_fill, plwd = 2.5, plty = 1,
+           cglcol = "grey70", cglty = 1, cglwd = 0.8,
+           axislabcol = "grey40",
+           caxislabels = paste0(round(seq(0, radar_max_val, length.out = 5) * 100, 1), "%"),
+           vlcex = 1.1,
+           title = "Emotion Radar: Darwish vs. Baraka")
+legend("topright",
+       legend = radar_data$poet,
+       col = colors_line, lwd = 2.5, lty = 1,
+       fill = colors_fill, border = colors_line,
+       bty = "n", cex = 1.0)
+```
+
+The two polygons overlap substantially on fear and sadness -- the shared emotional
+core of resistance poetry. The largest divergence appears on the surprise axis, where
+Darwish's polygon extends well beyond Baraka's (11.9% vs. 6.8%), and on joy, where
+Baraka reaches nearly twice Darwish's score. The radar makes visible what the bar
+charts only imply: Darwish writes from a darker, more uncertain emotional place,
+while Baraka balances his anger with more moments of affirmation.
+
+
+## 3.7 Poem-Emotion Heatmap
+
+The heatmap shows the emotion proportion for each individual poem, revealing which
+specific poems drive the aggregate patterns. This identifies emotionally distinctive
+poems and shows within-poet variation.
+
+```{r heatmap-darwish, fig.height=7, fig.width=10}
+# Darwish heatmap
+darwish_emotions %>%
+  filter(sentiment %in% core_emotions) %>%
+  mutate(poem = str_trunc(poem, 30)) %>%
+  ggplot(aes(x = sentiment, y = reorder(poem, proportion), fill = proportion)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = round(proportion, 2)), size = 3, color = "grey20") +
+  scale_fill_gradient(low = "white", high = "#B22222",
+                      labels = percent_format()) +
+  labs(title = "Darwish: Emotion Heatmap by Poem",
+       subtitle = "Proportion of emotion words in each poem",
+       x = NULL, y = NULL, fill = "Proportion") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 35, hjust = 1),
+        panel.grid = element_blank())
+```
+
+```{r heatmap-baraka, fig.height=7, fig.width=10}
+# Baraka heatmap
+baraka_emotions %>%
+  filter(sentiment %in% core_emotions) %>%
+  mutate(poem = str_trunc(poem, 30)) %>%
+  ggplot(aes(x = sentiment, y = reorder(poem, proportion), fill = proportion)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = round(proportion, 2)), size = 3, color = "grey20") +
+  scale_fill_gradient(low = "white", high = "#1565C0",
+                      labels = percent_format()) +
+  labs(title = "Baraka: Emotion Heatmap by Poem",
+       subtitle = "Proportion of emotion words in each poem",
+       x = NULL, y = NULL, fill = "Proportion") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 35, hjust = 1),
+        panel.grid = element_blank())
+```
+
+The heatmaps show that the corpus-level averages mask wide variation within each
+poet. In Darwish's heatmap, "I Am Joseph, O Father" (أنا يوسف يا أبي) is dominated
+by surprise (0.50), while "Rita and the Rifle" (ريتا والبندقية) peaks on sadness (0.33)
+and anger (0.17). In Baraka's heatmap, "Black Art" stands out for its high fear (0.16)
+and anger (0.13), while "Preface to a Twenty Volume Suicide Note" is highest on
+trust (0.21) -- an unexpected result for a poem with "suicide" in the title. This
+poem-level granularity matters: it shows that labeling either poet with a single
+emotional tag misrepresents the range of their work.
+
+
+## 3.8 TF-IDF: Distinctive Words
+
+Term Frequency-Inverse Document Frequency (TF-IDF) identifies words that are
+distinctive to each poet rather than just frequent. A word with high TF-IDF appears
+often in one poet's work but rarely (or never) in the other's. This is computed by
+treating each poet's full corpus as a single document. Since Arabic and English
+never share words, TF-IDF is applied within each language separately across poems.
+
+```{r tfidf, fig.height=8, fig.width=12}
+# TF-IDF per poem within each poet
+darwish_tfidf <- darwish_poems %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% ar_stops, str_length(word) > 1) %>%
+  count(poem, word, sort = TRUE) %>%
+  bind_tf_idf(word, poem, n)
+
+baraka_tfidf <- baraka_poems %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% en_stops, str_length(word) > 2) %>%
+  count(poem, word, sort = TRUE) %>%
+  bind_tf_idf(word, poem, n)
+
+# Top TF-IDF words per poet (across all poems)
+top_tfidf_d <- darwish_tfidf %>%
+  arrange(desc(tf_idf)) %>%
+  distinct(word, .keep_all = TRUE) %>%
+  slice_max(tf_idf, n = 15) %>%
+  mutate(poet = "Mahmoud Darwish")
+
+top_tfidf_b <- baraka_tfidf %>%
+  arrange(desc(tf_idf)) %>%
+  distinct(word, .keep_all = TRUE) %>%
+  slice_max(tf_idf, n = 15) %>%
+  mutate(poet = "Amiri Baraka")
+
+bind_rows(top_tfidf_d, top_tfidf_b) %>%
+  ggplot(aes(x = reorder_within(word, tf_idf, poet),
+             y = tf_idf, fill = poet)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~poet, scales = "free") +
+  coord_flip() +
+  scale_x_reordered() +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Most Distinctive Words by Poet (TF-IDF)",
+       subtitle = "Words that are uniquely important to individual poems",
+       x = NULL, y = "TF-IDF Score") +
+  theme_minimal(base_size = 13)
+```
+
+```{r tfidf-per-poem, fig.height=9, fig.width=13}
+# Top TF-IDF words per poem -- Baraka (4 poems)
+baraka_tfidf %>%
+  filter(poem %in% c("Somebody Blew Up America", "Black Art",
+                      "Preface to a Twenty Volume Suicide Note",
+                      "An Agony. As Now.")) %>%
+  group_by(poem) %>%
+  slice_max(tf_idf, n = 8) %>%
+  ungroup() %>%
+  ggplot(aes(x = reorder_within(word, tf_idf, poem),
+             y = tf_idf, fill = poem)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~poem, scales = "free", ncol = 2) +
+  coord_flip() +
+  scale_x_reordered() +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "Baraka: Most Distinctive Words per Poem (TF-IDF)",
+       subtitle = "Words that define each poem's unique vocabulary",
+       x = NULL, y = "TF-IDF") +
+  theme_minimal(base_size = 12)
+```
+
+Where frequency analysis shows what is common across a poet's work, TF-IDF shows
+what makes each poem unique. The per-poem TF-IDF plots for Baraka confirm that
+"Somebody Blew Up America" is dominated by accusatory vocabulary, while "Preface"
+is defined by more introspective terms. These thematic signatures help distinguish
+poems that share high-frequency words but differ in subject and tone.
+
+
+## 3.9 Sentiment Arc: Emotional Trajectory
+
+The sentiment arc tracks how positive and negative sentiment shifts across the lines
+of a poem, revealing its emotional structure. We compute a rolling sentiment score
+by dividing each poem into segments and calculating the net sentiment
+(positive minus negative) in each segment.
+
+```{r sentiment-arc, fig.height=8, fig.width=12}
+# Helper: compute sentiment arc for a set of poems + NRC lexicon
+compute_arc <- function(poems_df, nrc_lex, poet_name, n_segments = 10) {
+  poems_df %>%
+    unnest_tokens(word, text) %>%
+    group_by(poem) %>%
+    mutate(word_pos = row_number(),
+           total_words = n(),
+           segment = ceiling(word_pos / total_words * n_segments)) %>%
+    ungroup() %>%
+    inner_join(nrc_lex %>% filter(sentiment %in% c("positive", "negative")),
+               by = "word", relationship = "many-to-many") %>%
+    mutate(score = ifelse(sentiment == "positive", 1, -1)) %>%
+    group_by(poem, segment) %>%
+    summarise(net_sentiment = sum(score), .groups = "drop") %>%
+    mutate(poet = poet_name)
+}
+
+darwish_arc <- compute_arc(darwish_poems, nrc_arabic,
+                            "Mahmoud Darwish", n_segments = 10)
+baraka_arc  <- compute_arc(baraka_poems, nrc_english,
+                            "Amiri Baraka", n_segments = 10)
+
+# Select a few representative poems per poet
+darwish_show <- c("بطاقة هوية", "عاشق من فلسطين",
+                  "عابرون في كلام عابر", "فكر بغيرك")
+baraka_show  <- c("Somebody Blew Up America", "Black Art",
+                  "Preface to a Twenty Volume Suicide Note",
+                  "An Agony. As Now.")
+
+bind_rows(
+  darwish_arc %>% filter(poem %in% darwish_show),
+  baraka_arc  %>% filter(poem %in% baraka_show)
+) %>%
+  ggplot(aes(x = segment, y = net_sentiment, color = poem)) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  facet_wrap(~poet, scales = "free_y", ncol = 1) +
+  scale_x_continuous(breaks = 1:10,
+                     labels = paste0(seq(10, 100, 10), "%")) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Sentiment Arc: Emotional Trajectory Across Poems",
+       subtitle = "Net sentiment (positive - negative) across 10 equal segments of each poem",
+       x = "Position in Poem", y = "Net Sentiment",
+       color = "Poem") +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 10))
+```
+
+The arcs add a temporal dimension invisible in aggregate counts. Darwish's
+"Identity Card" (بطاقة هوية) oscillates between positive and negative segments,
+reflecting its alternating structure of defiance and lament. Baraka's "Black Art"
+stays below the zero line for most of its length (segments 1--8 are all negative)
+before spiking sharply positive at the end -- a dramatic reversal that mirrors the
+poem's shift from denouncing to envisioning. These arc shapes correspond to
+different rhetorical strategies that aggregate emotion counts cannot capture.
+
+
+## 3.10 Pairwise Word Correlation
+
+Pairwise correlation measures which words tend to co-occur within the same poems.
+Unlike bigrams (which capture adjacent words), correlation captures words that
+appear in the same poems regardless of proximity. We use the `widyr` package's
+`pairwise_cor()` function with a phi coefficient, filtering for words that appear
+in at least 3 poems.
+
+```{r pairwise-cor, fig.height=8, fig.width=12}
+# Baraka pairwise correlation (English -- more interpretable for display)
+baraka_word_pairs <- baraka_poems %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% en_stops, str_length(word) > 2) %>%
+  add_count(word) %>%
+  filter(n >= 5) %>%
+  pairwise_cor(word, poem, sort = TRUE)
+
+# Top positive correlations
+set.seed(42)
+baraka_word_pairs %>%
+  filter(correlation > 0.4) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation),
+                 show.legend = TRUE, color = "steelblue") +
+  geom_node_point(size = 5, color = "#E74C3C", alpha = 0.8) +
+  geom_node_text(aes(label = name), repel = TRUE, size = 3.5,
+                 max.overlaps = 15) +
+  scale_edge_width(range = c(0.5, 2.5)) +
+  theme_void(base_size = 13) +
+  labs(title = "Baraka: Word Correlation Network",
+       subtitle = "Words that co-occur in the same poems (phi > 0.4)",
+       edge_alpha = "Correlation", edge_width = "Correlation")
+```
+
+```{r pairwise-darwish, fig.height=8, fig.width=12}
+# Darwish pairwise correlation
+darwish_word_pairs <- darwish_poems %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% ar_stops, str_length(word) > 1) %>%
+  add_count(word) %>%
+  filter(n >= 5) %>%
+  pairwise_cor(word, poem, sort = TRUE)
+
+set.seed(42)
+darwish_word_pairs %>%
+  filter(correlation > 0.4) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation),
+                 show.legend = TRUE, color = "darkgreen") +
+  geom_node_point(size = 5, color = "#2980B9", alpha = 0.8) +
+  geom_node_text(aes(label = name), repel = TRUE, size = 3.5,
+                 max.overlaps = 15) +
+  scale_edge_width(range = c(0.5, 2.5)) +
+  theme_void(base_size = 13) +
+  labs(title = "Darwish: Word Correlation Network",
+       subtitle = "Words that co-occur in the same poems (phi > 0.4)",
+       edge_alpha = "Correlation", edge_width = "Correlation")
+```
+
+Unlike bigrams, which capture adjacency, pairwise correlation captures words that
+co-occur in the same poems even when separated by many lines. In Baraka's network,
+words related to racial identity (e.g., "black," "people," "white") cluster tightly,
+while a separate cluster forms around political accusation vocabulary. Darwish's
+network tends to group landscape and body imagery together. These clusters map the
+thematic modules of each poet's work at a level that individual word counts cannot
+reach.
+
+
+# 4. Discussion
+
+## 4.1 Emotional Registers of Resistance
+
+The NRC emotion analysis is the most direct cross-linguistic comparison in this
+study. Both poets share fear and sadness as their dominant emotions, confirming that
+resistance poetry -- whether rooted in Palestinian exile or African-American
+struggle -- draws heavily on these registers. The difference lies in the secondary
+emotions: Darwish leans toward surprise (11.9%), reflecting the uncertainty and
+displacement of exile, while Baraka's anger (10.2%) runs nearly as strong as his
+sadness, consistent with his confrontational poetics.
+
+One caveat: not every word matches the NRC lexicon. Arabic's morphological
+complexity reduces match rates because prefixes and suffixes create surface forms
+absent from the lexicon. We report match rates transparently so the reader can
+judge the reliability of these profiles.
+
+## 4.2 Vocabulary and Structure
+
+Mean TTR values are close (Darwish 0.805, Baraka 0.796), but the outliers tell a
+richer story. Baraka's "SOS" has a TTR of just 0.27 -- the lowest in either
+corpus -- because its heavy onomatopoeia and incantatory repetition deliberately
+sacrifice vocabulary breadth for rhythmic force. Darwish uses
+anaphora similarly in "Passers in Passing Words" (TTR 0.63), where the repeated
+address structure is a rhetorical choice, not a vocabulary limitation. In both cases,
+low TTR flags deliberate poetic strategy.
+
+Sparsity is comparable across the two sub-corpora (Darwish 92.1%, Baraka 91.4%),
+indicating that both poets draw on largely poem-specific vocabulary rather than
+recycling a fixed set of terms. This high sparsity is expected in poetry, where each
+poem typically addresses a distinct theme or occasion.
+
+## 4.3 Thematic Vocabulary and Phrase Patterns
+
+The word frequency and bigram analyses run separately per language but
+expose a clear thematic contrast. Darwish's top words (اطل "look out," ابي
+"my father," البحر "the sea") are intimate and landscape-oriented. Baraka's
+("black," "people," "killed") are collective and political. The bigram "black
+people" dominates Baraka's network as both subject and rallying cry, while
+Darwish's top bigrams ("think of others," "passing words") are more reflective.
+
+Word frequency and bigrams complement each other: frequency shows what each poet
+returns to, while bigrams show how those terms combine into phrases. Baraka's
+chiastic pair "survive blackman / blackman survive" is invisible in a word count
+but central to his rhythmic strategy.
+
+## 4.4 Advanced Cross-Linguistic Patterns
+
+The radar chart makes the shape difference between the two poets immediately
+visible. Both polygons extend furthest on sadness and fear, but Darwish's polygon
+bulges outward on surprise while Baraka's extends on trust and joy. This shape
+contrast -- Darwish darker and more uncertain, Baraka more balanced between anger
+and affirmation -- is harder to see in side-by-side bar charts.
+
+The poem-level heatmaps show that these aggregate profiles mask wide internal
+variation. Darwish's "I Am Joseph, O Father" is dominated by surprise (0.50), while
+"Rita and the Rifle" peaks on sadness and anger. Baraka's "Black Art" concentrates
+on fear and anger, while "Preface to a Twenty Volume Suicide Note" scores highest
+on trust (0.21). Neither poet is a one-note writer, even though both are often filed
+under "resistance."
+
+TF-IDF and the per-poem breakdown shift attention from shared
+vocabulary to distinctive vocabulary. Words that define "Somebody Blew Up America"
+differ sharply from those that define "Preface," even though both poems share many
+high-frequency terms. This technique helps separate thematic identity from mere
+frequency.
+
+The sentiment arcs capture emotional trajectory -- something invisible in aggregate
+counts. Baraka's "Black Art" sustains a negative arc for eight segments before
+spiking positive at the end, while Darwish's "Identity Card" oscillates throughout.
+These shape differences reflect distinct rhetorical strategies: sustained buildup
+versus alternating tension.
+
+Pairwise correlation networks group words that share thematic space across poems,
+regardless of adjacency. Baraka's network clusters racial identity vocabulary
+separately from political accusation vocabulary. Darwish's clusters landscape
+imagery with body imagery. These groupings map the latent thematic modules that
+organize each poet's work.
+
+## 4.5 Limitations
+
+We note several methodological limitations:
+
+1. **Arabic morphology**: Arabic's rich inflectional system produces many surface
+   forms from a single root. Without lemmatization or stemming (which would require
+   specialized Arabic NLP tools beyond the scope of this course), each inflected form
+   is treated as a separate word. This may inflate TTR and sparsity for Darwish
+   relative to Baraka, and reduce NRC lexicon match rates.
+
+2. **Corpus size**: With 14 poems per poet, this is a small corpus by text mining
+   standards. Results are exploratory and should not be generalized to the full body
+   of either poet's work.
+
+3. **NRC lexicon coverage**: The multilingual NRC lexicon relies on machine
+   translation for non-English entries. Some Arabic emotion assignments may be
+   imprecise due to translation artifacts or cultural differences in emotional
+   connotation.
+
+4. **Translation equivalence**: We compare numeric metrics, not meanings. Two poems
+   might score identically on "sadness" for entirely different reasons, rooted in
+   different cultural contexts of loss.
+
+
+# 5. Conclusion
+
+Darwish and Baraka share sadness and fear as their dominant emotions, but diverge
+on secondary registers: Darwish's work carries more surprise and less joy, while
+Baraka balances anger with trust and affirmation. Their lexical strategies also
+differ -- Darwish's vocabulary is intimate and geographic, Baraka's is collective
+and confrontational -- though both poets show high within-corpus variation, with
+individual poems occupying very different emotional and thematic positions.
+
+The ten techniques applied here -- NRC sentiment, radar charts, heatmaps, sentiment
+arcs, TF-IDF, TTR/MATTR, sparsity, word frequency, bigrams, and pairwise
+correlation -- span tokenization, sentiment analysis, lexical diversity,
+document-feature matrices, and network analysis. The NRC multilingual lexicon
+proved essential for bridging the language divide, enabling direct comparison
+of emotional profiles between Arabic and English poetry.
+
+The poem-level analyses (heatmaps, sentiment arcs, TF-IDF) are where the most
+interesting patterns emerge: they show that neither poet is monolithic, and that
+corpus-level averages obscure substantial internal variation. These quantitative
+patterns complement traditional literary analysis by making visible the emotional
+and structural architecture of resistance poetry across two very different
+linguistic traditions.
+
+
+# References
+
+- Benoit, K. et al. (2018). quanteda: An R package for the quantitative analysis
+  of textual data. *Journal of Open Source Software*, 3(30), 774.
+- Covington, M. A. & McFall, J. D. (2010). Cutting the Gordian Knot: The
+  Moving-Average Type-Token Ratio (MATTR). *Journal of Quantitative Linguistics*,
+  17(2), 94-100.
+- Mohammad, S. M. & Turney, P. D. (2013). Crowdsourcing a Word-Emotion Association
+  Lexicon. *Computational Intelligence*, 29(3), 436-465.
+- Reagan, A. J. et al. (2016). The emotional arcs of stories are dominated by six
+  basic shapes. *EPJ Data Science*, 5(1), 1-12.
+- Silge, J. & Robinson, D. (2017). *Text Mining with R: A Tidy Approach*. O'Reilly.
+- Welbers, K. et al. (2017). Text Analysis in R. *Communication Methods and Measures*,
+  11(4), 245-265.
+- Poem sources: aldiwan.net, poetsgate.com, poetryfoundation.org, poemhunter.com,
+  Genius, becauseofthemwecan.com
+
 ---
 
-## 2. Data
-
-
-### 2.1 Baraka Corpus
-
-The three Baraka poems included in this analysis are:
-
-- *SOS*
-- *Ka'Ba*
-- *Somebody Blew Up America*
-
-These were compiled into a tidy line-level dataset using the `baraka_poems_dataset.R` script. Each row represents one line, tagged with poet, poem title, and line number.
-
-```{r}
-baraka_poems <- source("~/Documents/GitHub/text_mining_uc3m/Baraka_dataset.R")
-```
-
-
-### 2.2 Darwish Corpus
-
-The three Darwish poems are:
-
-- [Poem 1 title]
-- [Poem 2 title]
-- [Poem 3 title]
-
-**Note on Arabic preprocessing:** Arabic text requires special handling before analysis. The following steps must be applied before building the corpus:
-
-- **Normalization:** Standardize Alef variants (أ إ آ → ا), remove diacritics (tashkeel), and normalize Ta Marbuta.
-- **Tokenization:** Use a whitespace-aware tokenizer that respects Arabic right-to-left script.
-- **Stopword removal:** Apply an Arabic stopword list (e.g., from the `stopwords` package with `language = "ar"`).
-- **Stemming/Lemmatization:** Consider whether to stem (reduces words to root) or lemmatize (reduces to dictionary form). Stemming will increase TTR artificially — document your choice.
-
-```{r}
-source("~/Documents/GitHub/text_mining_uc3m/darwish_dataset.R")
-```
-
-
-### 2.3 Combined Dataset
-
-```{r data-load}
-# Load Baraka line-level data
-# source("baraka_poems_dataset.R")
-
-# Load Darwish data
-# darwish_lines <- read_csv("darwish_poems_dataset.csv")
-
-# Combine
-all_lines <- bind_rows(baraka_lines, darwish_lines)
-```
-
----
-
-## 3. Analytical Framework
-
-This project uses a **hybrid Quanteda + tidytext workflow**:
-
-- **Quanteda** is used as the computational engine to build Document-Feature Matrices (DFMs) and calculate statistics that require matrix-level operations (e.g., TTR, document similarity).
-- **tidytext** is used to reshape data into long/tidy format for visualization and sentiment mapping.
-
-The two techniques are complementary: Quanteda handles the math correctly for Arabic, while tidytext integrates cleanly with `ggplot2` for output.
-
----
-
-## 4. Technique 1 — Lexical Diversity (TTR)
-
-### 4.1 What We Are Measuring
-
-The **Type-Token Ratio (TTR)** measures the proportion of unique words (types) to total words (tokens) in a text:
-
-$$TTR = \frac{\text{Number of Unique Words}}{\text{Total Number of Words}}$$
-
-A higher TTR indicates a richer, more varied vocabulary. We expect Arabic to yield a higher TTR partly due to its morphological richness — a single Arabic root can generate many surface forms that count as distinct types.
-
-**Important caveat:** TTR is sensitive to text length. Longer texts almost always have lower TTR. We will use **Moving Average TTR (MATTR)** or **Measure of Textual Lexical Diversity (MTLD)** from Quanteda to correct for this, enabling a fair comparison across poems of different lengths.
-
-### 4.2 Building the DFM
-
-```{r dfm-build}
-# Step 1: Create a quanteda corpus from the combined dataset
-
-corpus_all <- corpus(all_lines, text_field = "line",
-                    docvars = data.frame(poet = all_lines$poet,
-                                          poem = all_lines$poem))
-                    
-# Step 2: Tokenize (handling Arabic RTL correctly)
-tokens_all <- tokens(corpus_all,
-                     remove_punct = TRUE,
-                     remove_numbers = TRUE)
-
-# Step 3: Remove stopwords (both languages)
-tokens_all <- tokens_remove(tokens_all,
-                            pattern = c(stopwords("en"), stopwords("ar")))
-
-# Step 4: Build DFM
-dfm_all <- dfm(tokens_all)
-```
-
-### 4.3 Calculating TTR per Poem
-
-```{r ttr-calculate}
-# Group by poem before calculating
-dfm_by_poem <- dfm_group(dfm_all, groups = interaction(poet, poem))
-
-# Calculate TTR
-# ttr_results <- textstat_lexdiv(dfm_by_poem, measure = "TTR")
-#mtld_results <- textstat_lexdiv(dfm_by_poem, measure = "MTLD")
-```
-
-### 4.4 Visualization
-
-```{r ttr-plot}
-# ttr_results %>%
-#   mutate(poet = if_else(str_detect(document, "Baraka"), "Baraka", "Darwish")) %>%
-#   ggplot(aes(x = reorder(document, TTR), y = TTR, fill = poet)) +
-#   geom_col() +
-#   coord_flip() +
-#   labs(title = "Lexical Diversity (TTR) by Poem",
-#        subtitle = "Higher = more varied vocabulary",
-#        x = NULL, y = "Type-Token Ratio") +
-#   theme_minimal()
-```
-
-**Interpretation guide:** When writing up results, address:
-
-- Which poet has a higher average TTR, and is the difference consistent across poems?
-- Does poem length explain any differences? (Check with MTLD which controls for length.)
-- What does this suggest about Arabic morphology vs. English in resistance poetry?
-
----
-
-## 5. Technique 2 — Sentiment Trajectory & Polarity
-
-### 5.1 What We Are Measuring
-
-Rather than a single sentiment score per poem, we map **how sentiment evolves across the poem** — from the first line to the last. This allows us to answer:
-
-- Does Darwish build toward a peak of anger, or sustain it throughout?
-- Does Baraka's anger follow a different structural arc?
-- Where does *hope* or *defiance* appear relative to *grief* or *rage*?
-
-We will track three dimensions of sentiment: **Anger**, **Hope/Defiance**, and **Grief/Sorrow**.
-
-### 5.2 Lexicon Strategy
-
-For **English (Baraka):** Use the NRC Emotion Lexicon (`tidytext::get_sentiments("nrc")`), which provides word-level scores for 8 emotions including anger, fear, trust, and anticipation.
-
-For **Arabic (Darwish):** This requires a dedicated Arabic sentiment lexicon. Options include:
-
-- **Arabic NRC Lexicon** (Mohammad et al.) — a translated version of NRC
-
-
-Document which lexicon is used and note any coverage gaps (words in the poem not found in the lexicon).
-
-### 5.3 Tidytext Sentiment Join
-
-```{r sentiment-join}
-# English: join NRC lexicon
-# baraka_sentiment <- baraka_lines %>%
-#   unnest_tokens(word, line) %>%
-#   inner_join(get_sentiments("nrc"), by = "word") %>%
-#   filter(sentiment %in% c("anger", "anticipation", "trust", "sadness")) %>%
-#   group_by(poem, line_number, sentiment) %>%
-#   summarise(n = n(), .groups = "drop")
-
-# Arabic: join Arabic NRC or chosen lexicon
-# darwish_sentiment <- darwish_lines %>%
-#   unnest_tokens(word, line) %>%
-#   inner_join(arabic_nrc, by = "word") %>%
-#   ...
-```
-
-### 5.4 Smoothed Trajectory Plot
-
-```{r sentiment-trajectory}
-# all_sentiment %>%
-#   filter(sentiment == "anger") %>%
-#   ggplot(aes(x = line_number, y = n, color = poet)) +
-#   geom_smooth(method = "loess", se = TRUE) +
-#   facet_wrap(~poem, scales = "free_x") +
-#   labs(title = "Anger Trajectory Across Poem Lines",
-#        x = "Line Number", y = "Anger Word Count") +
-#   theme_minimal()
-```
-
-**Note on smoothing:** Use `geom_smooth(method = "loess")` to reveal the overall arc without overreacting to individual lines. Show the raw points as well with `geom_point(alpha = 0.3)` for transparency.
-
-### 5.5 Polarity Heatmap (Optional Extension)
-
-A heatmap showing each poem as a column and each line as a row, colored by dominant emotion, can give an immediate visual intuition of structural differences between the poets.
-
-```{r heatmap}
-# all_sentiment %>%
-#   group_by(poet, poem, line_number) %>%
-#   slice_max(n, n = 1) %>%  # dominant emotion per line
-#   ggplot(aes(x = poem, y = line_number, fill = sentiment)) +
-#   geom_tile() +
-#   scale_fill_brewer(palette = "Set2") +
-#   facet_wrap(~poet, scales = "free") +
-#   labs(title = "Dominant Emotion by Line",
-#        x = NULL, y = "Line Number") +
-#   theme_minimal()
-```
-
----
-
-## 6. Synthesis & Interpretation
-
-This section should bring the two techniques into dialogue. Suggested questions to address:
-
-- **Do the TTR results and sentiment results tell a consistent story?** For example, if Darwish has higher lexical diversity AND a more gradual emotional build, this might suggest a more layered rhetorical strategy.
-- **What are the limitations?** Sentiment lexicons are imperfect; translation of emotion concepts across cultures is contested. Acknowledge that "anger" in the NRC lexicon was built on English-language intuitions.
-- **What does "manifestation of anger" mean differently for each poet?** Consider the poems' political contexts — Darwish writing under occupation, Baraka writing in the aftermath of 9/11.
-
----
-
-## 7. Next Steps & Open Questions
-
-- [ ] Finalize Darwish poem selection and build `darwish_lines` dataset in the same structure as `baraka_lines`
-- [ ] Evaluate Arabic lexicon options and document coverage rates
-- [ ] Decide on TTR correction method (MATTR vs. MTLD) and justify in write-up
-- [ ] Run pilot TTR calculation on Baraka alone to verify the Quanteda pipeline before adding Arabic
-- [ ] Determine whether to stem Arabic text and document effect on TTR
-- [ ] Draft interpretation of results for Section 6 once analysis is complete
-
----
-
-## Appendix: Session Info
+*Analysis conducted with R `r getRversion()`, using tidytext, quanteda, and the
+NRC Emotion Lexicon.*
 
 ```{r session-info}
 sessionInfo()

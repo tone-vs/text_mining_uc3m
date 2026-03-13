@@ -559,14 +559,164 @@ Let us all survive, who need to OK?
 And we wish each other luck!")
 
 
+# NEW POEMS (added to expand corpus to 14 poems)
+
+preface_raw <- c("Lately, I've become accustomed to the way
+The ground opens up and envelopes me
+Each time I go out to walk the dog.
+Or the broad edged silly music the wind
+Makes when I run for a bus...
+
+Things have come to that.
+
+And now, each night I count the stars.
+And each night I get the same number.
+And when they will not come to be counted,
+I count the holes they leave.
+
+Nobody sings anymore.
+
+And then last night I tiptoed up
+To my daughter's room and heard her
+Talking to someone, and when I opened
+The door, there was no one there...
+Only she on her knees, peeking into
+
+Her own clasped hands")
+
+agony_raw <- c("I am inside someone
+who hates me. I look
+out from his eyes. Smell
+what fouled tunes come in
+to his breath. Love his
+wretched women.
+
+Slits in the metal, for sun. Where
+my eyes sit turning, at the cool air
+the glance of light, or hard flesh
+rubbed against me, a woman, a man,
+without shadow, or voice, or meaning.
+
+This is the enclosure (flesh,
+where innocence is a weapon. An
+abstraction. Touch. (Not mine.
+Or yours, if you are the soul I had
+and abandoned when I was blind and had
+my enemies carry me as a dead man
+(if he is beautiful, or pitied.
+
+It can be pain. (As now, as all his
+flesh hurts me.) It can be that. Or
+pain. As when she ran from me into
+that forest.
+Or pain, the mind
+silver spiraled whirled against the
+sun, higher than even old men thought
+God would be. Or pain. And the other. The
+yes. (Inside his books, his fingers. They
+are withered yellow flowers and were never
+beautiful.) The yes. You will, lost soul, say
+beauty. Beauty, practiced, as the tree. The
+slow river. A white sun in its wet sentences.
+
+Or, the cold men in their gale. Ecstasy. Flesh
+or soul. The yes. (Their robes blown. Their bowls
+empty. They chant at my heels, not at yours.) Flesh
+or soul, as corrupt. Where the answer moves too quickly.
+Where the God is a self, after all.)
+
+Cold air blown through narrow blind eyes. Flesh,
+white hot metal. Glows as the day with its sun.
+It is a human love, I live inside. A bony skeleton
+you recognize as words or simple feeling.
+
+But it has no feeling. As the metal, is hot, it is not,
+given to love.
+
+It burns the thing
+inside it. And that thing
+screams.")
+
+memory_radio_raw <- c("Who has ever stopped to think of the divinity of Lamont Cranston?
+(Only jack Kerouac, that I know of: & me.
+The rest of you probably had on WCBS and Kate Smith,
+Or something equally unattractive.)
+
+What can I say?
+It is better to haved loved and lost
+Than to put linoleum in your living rooms?
+
+Am I a sage or something?
+Mandrake's hypnotic gesture of the week?
+(Remember, I do not have the healing powers of Oral Roberts...
+I cannot, like F. J. Sheen, tell you how to get saved & rich!
+I cannot even order you to the gaschamber satori like Hitler or Goddy Knight)
+
+& love is an evil word.
+Turn it backwards/see, see what I mean?
+An evol word. & besides
+who understands it?
+I certainly wouldn't like to go out on that kind of limb.
+
+Saturday mornings we listened to the Red Lantern & his undersea folk.
+At 11, Let's Pretend
+& we did
+& I, the poet, still do. Thank God!
+
+What was it he used to say (after the transformation when he was safe
+& invisible & the unbelievers couldn't throw stones?) 'Heh, heh, heh.
+Who knows what evil lurks in the hearts of men? The Shadow knows.'
+
+O, yes he does
+O, yes he does
+An evil word it is,
+This Love.")
+
+balboa_raw <- c("It cannot come
+except you make it
+from materials
+it is not
+caught from. (The philosophers
+of need, of which
+I am lately
+one,
+will tell you. The People,
+(and not think themselves
+liable
+to the same
+trembling flesh). I say now, The People,
+as some lesson repeated, now,
+the lights are off, to myself,
+as a lover, or at the cold wind.
+Let my poems be a graph
+of me. (And they keep
+to the line where flesh
+drops off. You will go
+blank at the middle. A
+dead man.
+But
+die soon, Love. If
+what you have for
+yourself, does not
+stretch to your body's
+end.
+(Where, without
+preface,
+music trails, or your fingers
+slip
+from my arm")
+
+
 # tibble with clean text
 baraka_poems <- tibble(
   poet = "Amiri Baraka",
   poem = c("SOS", "Ka'Ba", "Somebody Blew Up America", "Incident", "Notes for a Speech",
-           "Legacy", "A Poem for Black Hearts", "Black Art", "Why are we Americans", 
-           "Who will survive America"),
-  text = map_chr(list(sos_raw, kaba_raw, somebody_raw, incident_raw, notes_raw, 
-                      legacy_raw, blackhearts_raw, blackart_raw, we_americans_raw, survive_raw), clean_poem)
+           "Legacy", "A Poem for Black Hearts", "Black Art", "Why are we Americans",
+           "Who will survive America", "Preface to a Twenty Volume Suicide Note",
+           "An Agony. As Now.", "In Memory of Radio", "Balboa, The Entertainer"),
+  text = map_chr(list(sos_raw, kaba_raw, somebody_raw, incident_raw, notes_raw,
+                      legacy_raw, blackhearts_raw, blackart_raw, we_americans_raw, survive_raw,
+                      preface_raw, agony_raw, memory_radio_raw, balboa_raw), clean_poem)
 )
 
 
