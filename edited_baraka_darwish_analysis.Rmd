@@ -124,9 +124,8 @@ orthographic normalization applied, while Baraka’s poems were collected
 from publicly available sources and formatted consistently for
 line-level analysis.
 
-We apply eight text mining techniques: NRC sentiment analysis,
-poem-emotion heatmaps, TF-IDF, lexical diversity (TTR, MATTR), sparsity,
-word frequency, bigram networks, and pairwise word correlation.
+We apply six text mining techniques: NRC sentiment analysis, TF-IDF, lexical diversity (TTR, MATTR), sparsity,
+word frequency, and bigram networks.
 
 ## 1.1 Background
 
@@ -158,17 +157,11 @@ literature, theater, and other art forms as tools of political
 expression, opposing structures of racial injustice and advocating for
 Black liberation.
 
-While both Darwish and Baraka used poetry as a form of resistance, their
-approaches differ significantly in tone and style. Darwish's poems use
-symbolism and memory to express themes of identity and resistance in a
-reflective and lyrical way. Conversely, Baraka's poetry is more direct
-and often seen as controversial. By using provocative language and
-rhetoric, he directly challenged the system of racial injustice and had
-clear demands for change. Moreover, Darwish writes in Arabic, while
-Baraka writes in English. The structural and semantic differences
+Conversely, Darwish wrote in Arabic, while Baraka wrote in English.
+The structural and semantic differences
 between these two languages can shape how meaning, emotion, and
 resistance are expressed. These contrasts highlights the different ways
-of expressing resistance which provides an interesting baseline for for
+of expressing resistance which provides an interesting baseline for 
 comparing how resistance is linguistically constructed across the two
 corpora.
 
@@ -264,7 +257,7 @@ cat("Total Arabic stopwords (normalized):", length(ar_stops), "\n")
 baraka_custom_stops <- c("bu", "de", "daaaa", "bap", "boo", "bup",
                          "pu", "daaaa", "rrrrrrrrrrrrrrr", "rrrrrrrr",
                          "tuhtuhtuhtuhtuhtuhtuhtuhtuhtuh", "aggh",
-                         "whoooo", "whooooooooooooooooooooo")
+                         "whoooo", "whooooooooooooooooooooo", "heh")
 
 # Unified English stopwords (tidytext + stopwords package + custom noise)
 en_stops <- unique(c(stop_words$word, stopwords::stopwords("en"), baraka_custom_stops))
@@ -338,8 +331,8 @@ kable(corpus_stats,
 
 ## 3.1 NRC Sentiment and Emotion Analysis
 
-This technique assigns emotion labels to every word in each poem using
-the NRC Emotion Lexicon. Because the lexicon maps both Arabic and
+We start of by using the NRC Lexicon to assign emotion labels to every word in each poem using. 
+Because the lexicon maps both Arabic and
 English to the same emotions, we can directly compare emotional profiles
 across languages. We tokenize each poet's poems separately, join to the
 appropriate language lexicon, count emotion matches, and normalize by
@@ -454,17 +447,7 @@ that these emotions are unevenly distributed and may reflect particular
 moments of heightened intensity rather than a consistent emotional
 pattern.
 
-### 3.1.2 Poem-Emotion Heatmap
-
-Having analyzed the core vocabulary, themes, and rhetorics, we now move
-over to an analysis of emotions in order to detect emotional patterns
-and how they vary across individual poems and within each poet's work.
-
-The heatmap shows the emotional proportions for each individual poem,
-revealing which poems contribute most strongly to the overall emotional
-tone and which ones deviate from the dominant emotional pattern. This
-helps identify emotionally distinctive poems and highlights the degree
-of emotional variation within each poet’s work.
+### Poem-Emotion Heatmap
 
 ```{r heatmap-darwish, fig.height=7, fig.width=10}
 # Darwish heatmap
@@ -502,16 +485,11 @@ baraka_emotions %>%
         panel.grid = element_blank())
 ```
 
-The heatmaps show that the corpus-level averages mask wide variation
-within each poet. In Darwish's heatmap, "I Am Joseph, O Father" (أنا
-يوسف يا أبي) is dominated by surprise (0.50), while "Rita and the Rifle"
-(ريتا والبندقية) peaks on sadness (0.33) and anger (0.17). In Baraka's
-heatmap, "Black Art" stands out for its high fear (0.16) and anger
-(0.13), while "Preface to a Twenty Volume Suicide Note" is highest on
-trust (0.21) -- an unexpected result for a poem with "suicide" in the
-title. This poem-level granularity matters: it shows that labeling
-either poet with a single emotional tag misrepresents the range of their
-work.
+The heatmap shows the emotional proportions for each individual poem,
+revealing which poems contribute most strongly to the overall emotional
+tone and which ones deviate from the dominant emotional pattern. This
+helps identify emotionally distinctive poems and highlights the degree
+of emotional variation within each poet’s work.
 
 ## 3.2 Lexical Diversity: TTR and MATTR
 
@@ -519,24 +497,22 @@ Type-Token Ratio (TTR) measures the proportion of unique words (types)
 relative to total words (tokens) in a text. A higher TTR indicates more
 diverse vocabulary, while a lower TTR suggests more repetition. Because
 TTR is a pure ratio computed *within* each text, it is
-language-independent. This means that a Darwish poem with TTR = 0.80 and
-a Baraka poem with TTR = 0.65 are directly comparable.
+language-independent, meaning we can directly compare the poems. 
 
 However, such comparisons should be interpreted with caution, as Arabic
 and English differ structurally in ways that affect vocabulary diversity
 scores. Arabic morphology operates at two levels. At the derivational
 level, a single root generates semantically distinct words. The root
-*w-ṭ-n*, central to Darwish's poetry, yields *waṭan* (homeland),
-*muwāṭin* (citizen), and *waṭanī* (national), which are three genuine
+*w-ṭ-n*, central to Darwish's poetry, yields *waṭan* (homeland) and
+*muwāṭin* (citizen), which are two genuine
 vocabulary choices. At the inflectional level, the same word takes
 multiple grammatical forms without changing meaning. The words *aḥibbu*
-(I love), *tuḥibbu* (you love), and *yuḥibbu* (he loves) are all surface
+(I love) and *tuḥibbu* (you love) are all surface
 forms of the same verb, with the pronoun collapsed into the word itself
 rather than expressed separately as in English.
 
 As a result, raw TTR counts each surface form as a separate type, which
-may inflate lexical diversity in Arabic due to inflectional variation
-rather than genuine lexical richness. Ideally, this issue would be
+may inflate lexical diversity in Arabic. Ideally, this issue would be
 addressed through lemmatization, which reduces inflected forms to a
 common base form while preserving derivational differences. However,
 Arabic lemmatization was beyond the scope of this project, and the
@@ -934,14 +910,19 @@ plot_bigram_network <- function(bigram_counts, title_text,
 
   ggraph(graph, layout = "fr") +
     geom_edge_link(
-      aes(edge_alpha = n, edge_width = n),
+      aes(edge_alpha = n),
+      edge_width = 0.4,
       show.legend = FALSE,
       arrow = arrow(type = "closed", length = unit(0.12, "inches")),
-      end_cap = circle(3, "mm")
+      end_cap = circle(5, "mm")
     ) +
     geom_node_point(color = "steelblue", size = 5, alpha = 0.8) +
-    geom_node_text(aes(label = name), vjust = 1.2, hjust = 0.5,
-                   size = 3.5, check_overlap = TRUE) +
+    geom_node_text(aes(label = name), 
+                   vjust = 1.2, 
+                   hjust = 0.5,
+                   size = 3.5,
+                   check_overlap = TRUE,
+                   repel = TRUE) +
     theme_void(base_size = 13) +
     labs(title = title_text)
 }
@@ -1078,6 +1059,7 @@ accusatory vocabulary, while "Preface" is defined by more introspective
 terms. These thematic signatures help distinguish poems that share
 high-frequency words but differ in subject and tone.
 
+
 # 4. Discussion
 
 ## 4.1 Emotional Registers of Resistance
@@ -1129,7 +1111,7 @@ each poet returns to, while bigrams show how those terms combine into
 phrases. Baraka's chiastic pair "survive blackman / blackman survive" is
 invisible in a word count but central to his rhythmic strategy.
 
-## 4.4 Cross-Linguistic Patterns
+## 4.4  Cross-Linguistic Patterns
 
 The poem-level heatmaps show that these aggregate profiles mask wide
 internal variation. Darwish's "I Am Joseph, O Father" is dominated by
