@@ -94,7 +94,7 @@ traditions: **Mahmoud Darwish** (1941--2008), the Palestinian national
 poet who wrote in Arabic, and **Amiri Baraka** (1934--2014), the
 African-American poet and activist who wrote in English.
 
-Both poets use verse as a tool for collective resistance, though they
+Both poets use poetry as a tool for collective resistance, though they
 address different, but comparable struggles. Darwish's poetry centers on
 Palestinian dispossession, exile, and the longing for homeland, while
 Baraka's work confronts anti-Black racism, celebrates Black identity,
@@ -103,13 +103,6 @@ and calls for revolutionary change.
 The central question of this analysis is: **How do the two poets of
 resistance, Darwish and Baraka, compare in their emotional expression,
 lexical diversity, and structural patterns?**
-
-A bilingual corpus poses methodological challenges, since Arabic and
-English words cannot be directly compared. We address this by selecting
-techniques that either produce language-independent numeric outputs,
-like NRC emotion scores, TTR, and sparsity. Additionally, we run some
-techniques, like word frequency, bigram networks, TF-IDF, and pairwise
-correlation, separately for each poet and compare them side-by-side.
 
 Our corpus contains **14 poems per poet** (28 total), drawn from
 different stages of their careers to reflect changes in style,
@@ -124,8 +117,8 @@ orthographic normalization applied, while Baraka’s poems were collected
 from publicly available sources and formatted consistently for
 line-level analysis.
 
-We apply six text mining techniques: NRC sentiment analysis, TF-IDF, lexical diversity (TTR, MATTR), sparsity,
-word frequency, and bigram networks.
+We apply six text mining techniques: NRC sentiment analysis, lexical
+diversity (TTR), sparsity, word frequency, bigram networks, and TF-IDF.
 
 ## 1.1 Background
 
@@ -140,8 +133,7 @@ song used for resisting the Israeli military. Darwish was also
 politically active, and served as an editor for the Palestinan
 Liberation Organisation. This painted the picture of him as a resistance
 poet, by strongly fighting and condemning Israeli occupation through
-poetry. His background and history naturally shaped his way of writing
-and his poems are therefore deeply rooted in the experience of exile,
+poetry. His poems are deeply rooted in the experience of exile,
 displacement, and the ongoing struggle for Palestinian identity and
 self-determination.
 
@@ -151,19 +143,36 @@ American literature. He was closely associated with the Black Power
 Movement through his role in the Black Arts Movement, which functioned
 as its cultural and artistic branch. This movement promoted Black
 self-determination, cultural pride, and resistance to systemic racism.
-Like Palestinian resistance movements, the Black Power Movement sought
-civil rights and autonomy in the face of oppression. Baraka used
-literature, theater, and other art forms as tools of political
-expression, opposing structures of racial injustice and advocating for
-Black liberation.
+Baraka used literature, theater, and other art forms as tools of
+political expression, opposing structures of racial injustice and
+advocating for Black liberation.
 
-Conversely, Darwish wrote in Arabic, while Baraka wrote in English.
-The structural and semantic differences
-between these two languages can shape how meaning, emotion, and
-resistance are expressed. These contrasts highlights the different ways
-of expressing resistance which provides an interesting baseline for 
-comparing how resistance is linguistically constructed across the two
-corpora.
+## 1.2 Linguistic Challenges
+
+A bilingual corpus poses methodological challenges, since Arabic and
+English words cannot be directly compared. We address this by selecting
+techniques that produce language-independent numeric outputs, like NRC
+emotion scores, MATTR, and sparsity. Additionally, word frequency,
+bigram networks, and TF-IDF are run separately for each poet to allow
+for a side-by-side comparison.
+
+Arabic and English differ structurally in ways that affect vocabulary
+diversity. Arabic morphology operates at two levels. At the derivational
+level, a single root generates semantically distinct words; for
+instance, the root *w-ṭ-n* (وطن), central to Darwish's poetry, yields
+*waṭan* (homeland) and *muwāṭin* (citizen), which are genuine vocabulary
+choices. At the inflectional level, the same word takes multiple
+grammatical forms without changing meaning. The words *aḥibbu* (أحب, I
+love) and *tuḥibbu* (تحب, you love) are surface forms of the same verb,
+with the pronoun collapsed into the word itself rather than expressed
+separately as in English.
+
+Ideally, this would be addressed through lemmatization to reduce
+inflected forms to a common base. However, Arabic lemmatization was
+beyond the scope of this project, and the analysis was conducted using
+Quanteda without morphological normalization. This is a limitation of
+the study, as lexical diversity and sparsity scores for Darwish may be
+artificially inflated compared to Baraka.
 
 # 2. Setup and Data
 
@@ -331,10 +340,8 @@ kable(corpus_stats,
 
 ## 3.1 NRC Sentiment and Emotion Analysis
 
-We start of by using the NRC Lexicon to assign emotion labels to every word in each poem using. 
-Because the lexicon maps both Arabic and
-English to the same emotions, we can directly compare emotional profiles
-across languages. We tokenize each poet's poems separately, join to the
+We begin by using the NRC Lexicon to assign emotion labels to every word
+in each poem. We tokenize each poet's poems separately, join to the
 appropriate language lexicon, count emotion matches, and normalize by
 total matched words per poem to account for length differences.
 
@@ -364,6 +371,13 @@ cat("Baraka: ", nrow(baraka_tokens_nrc), "emotion matches from",
             n_distinct(baraka_poems %>% unnest_tokens(word, text) %>% pull(word)), 1),
     "% unique words matched)\n")
 ```
+
+Darwish produced only 283 emotion matches from 3001 total tokens (4.7%
+match rate), while Baraka produced 1125 matches from 4017 tokens
+(19.3%). This difference means that Darwish's emotion scores are based
+on a much smaller proportion of his vocabulary, likely reflecting
+Arabic's morphological, as well as potential imprecision in the NRC's
+machine-translated Arabic entries.
 
 ```{r sentiment-aggregate}
 # Aggregate emotion counts per poem
@@ -427,25 +441,21 @@ all_emotions %>%
   theme(axis.text.x = element_text(angle = 30, hjust = 1))
 ```
 
-Both poets share sadness and fear as their two dominant emotions, but
-the distributions differ. Darwish's profile is led by sadness (13.6%)
-and fear (13.1%), with surprise (11.9%) ranking third. This is a pattern
-consistent with exile poetry, where loss and uncertainty dominate.
-Baraka's top emotion is fear (12.6%), followed by sadness (10.3%) and
-anger (10.2%); his anger score is notably close to his sadness,
-reflecting a more confrontational register. Darwish's joy score (4.6%)
-is roughly half of Baraka's (8.7%), suggesting a darker emotional
-baseline in the Arabic corpus. This may seem counterintuitive,
-considering Baraka's confrontational way of writing, but may be a
-reflection of themes like empowerment and collective identity within the
-Black Arts Movement.
+Both poets share sadness and fear as dominant emotions, yet their
+distributions reveal distinct rhetorical strategies. Darwish’s profile
+is led by sadness (13.6%), fear (13.1%), and surprise (11.9%), a pattern
+consistent with exile poetry, where loss and uncertainty prevail.
+Baraka’s profile shifts toward a more confrontational register, with
+anger (10.2%) nearly equaling his sadness.
 
-Looking at the second plot, it visualizes how emotions like sadness and
-surprise, has larger standard deviations across Darwish's poems. This
-suggest greater variability of emotions across the corpus, indicating
-that these emotions are unevenly distributed and may reflect particular
-moments of heightened intensity rather than a consistent emotional
-pattern.
+Thematically, Baraka’s higher joy score (8.7% vs Darwish’s 4.6%) likely
+reflects the Black Arts Movement’s emphasis on spiritual celebration and
+cultural pride, creating space for joy even within a resistance corpus.
+Conversely, Darwish’s structural focus on displacement and identity
+leaves less room for joyful registers. While Darwish exhibits higher
+overall sentiment polarization (positive/negative), Baraka uses a more
+"neutral" political vocabulary that bypasses simple sentiment
+classification.
 
 ### Poem-Emotion Heatmap
 
@@ -485,46 +495,40 @@ baraka_emotions %>%
         panel.grid = element_blank())
 ```
 
-The heatmap shows the emotional proportions for each individual poem,
-revealing which poems contribute most strongly to the overall emotional
-tone and which ones deviate from the dominant emotional pattern. This
-helps identify emotionally distinctive poems and highlights the degree
-of emotional variation within each poet’s work.
+The most significant contrast between the two poets is structural.
+Darwish’s heatmap reveals "emotional concentration"; high intensity is
+localized in a few cells. This suggests his poems are emotionally
+focused rather than multidimensional. For example, his 13.6% sadness
+score is heavily driven by ريتا والبندقية (*Rita and the Rifle* ) at
+0.33 and الجدار (*The Wall)* at 0.22. In these works, sadness is a
+direct response to the "war-side" of occupation. Similarly, surprise is
+almost exclusively tied to أنا يوسف يا أبي (*I Am Joseph, O Father* ) at
+0.50. A notable exception is فكر بغيرك (*Think of Others*), which shows
+a rare, even distribution (0.17) across four emotions, reflecting a call
+for universal empathy.
 
-## 3.2 Lexical Diversity: TTR and MATTR
+In contrast, Baraka’s heatmap is "uniformly dense," reflecting a more
+consistent emotional engagement across his work. His high anger scores
+appears consistently in poems like *Legacy*, *Notes for a Speech*, and
+*Black Art*. This confirms that for Baraka, anger is not an isolated
+reaction but a permanent rhetorical feature of his resistance. Likewise,
+his joy is distributed across introspective works like *Preface to a
+Twenty Volume Suicide Note* and *An Agony. As Now*.
+
+Ultimately, these patterns map onto their stylistic differences. Darwish
+writes concentrated lyrical poems where a single emotional register
+dominates a specific scene, while Baraka’s varied poems distribute
+multiple emotions simultaneously to create a broad political critique.
+
+## 3.2 Lexical Diversity:
 
 Type-Token Ratio (TTR) measures the proportion of unique words (types)
-relative to total words (tokens) in a text. A higher TTR indicates more
-diverse vocabulary, while a lower TTR suggests more repetition. Because
-TTR is a pure ratio computed *within* each text, it is
-language-independent, meaning we can directly compare the poems. 
+relative to total words (tokens) in a text. Considering TTR is sensitive
+to text length, we compute and use the Moving-Average TTR (MATTR), which
+uses a more robust estimate across texts of varying length.
 
-However, such comparisons should be interpreted with caution, as Arabic
-and English differ structurally in ways that affect vocabulary diversity
-scores. Arabic morphology operates at two levels. At the derivational
-level, a single root generates semantically distinct words. The root
-*w-ṭ-n*, central to Darwish's poetry, yields *waṭan* (homeland) and
-*muwāṭin* (citizen), which are two genuine
-vocabulary choices. At the inflectional level, the same word takes
-multiple grammatical forms without changing meaning. The words *aḥibbu*
-(I love) and *tuḥibbu* (you love) are all surface
-forms of the same verb, with the pronoun collapsed into the word itself
-rather than expressed separately as in English.
-
-As a result, raw TTR counts each surface form as a separate type, which
-may inflate lexical diversity in Arabic. Ideally, this issue would be
-addressed through lemmatization, which reduces inflected forms to a
-common base form while preserving derivational differences. However,
-Arabic lemmatization was beyond the scope of this project, and the
-analysis was conducted using Quanteda without morphological
-normalization. This should therefore be considered a limitation of the
-study, as lexical diversity scores for Arabic texts may be artificially
-inflated compared to English texts.
-
-Simple TTR is sensitive to text length, because longer texts tend to
-have lower TTR. So, we also compute the Moving-Average TTR (MATTR),
-which uses a sliding window to provide a more robust estimate across
-texts of varying length.
+A higher score indicates more diverse vocabulary, while a lower score
+suggests more repetition.
 
 ```{r ttr-compute}
 # Build quanteda corpora with appropriate stopwords
@@ -560,19 +564,6 @@ baraka_div   <- left_join(baraka_ttr, baraka_mattr, by = "document") %>%
   mutate(poet = "Amiri Baraka")
 
 all_div <- bind_rows(darwish_div, baraka_div)
-```
-
-```{r ttr-boxplot, fig.height=5}
-# TTR boxplot
-ggplot(all_div, aes(x = poet, y = TTR, fill = poet)) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(width = 0.15, alpha = 0.6, size = 2.5) +
-  scale_fill_brewer(palette = "Set1") +
-  labs(title = "Lexical Diversity: Type-Token Ratio (TTR)",
-       subtitle = "Each point is one poem",
-       y = "TTR (unique words / total words)", x = NULL) +
-  theme_minimal(base_size = 13) +
-  theme(legend.position = "none")
 ```
 
 ```{r mattr-boxplot, fig.height=5}
@@ -625,48 +616,34 @@ kable(div_summary,
       caption = "Lexical diversity summary by poet")
 ```
 
-The lexical diversity results show generally high TTR and MATTR values
-for both poets, indicating that most poems contain a relatively high
-proportion of unique words and therefore a diverse vocabulary.
+Both poets uses a rich, non-repetitive vocabulary. While Baraka’s mean
+MATTR (0.879) is slightly higher than Darwish’s (0.854), the specific
+outliers are more analytically significant than the averages. For
+Baraka, *SOS* is a notable outlier (0.27), where a low MATTR reflects
+the repetitive, chant-like urgency of phrases such as "Calling all black
+people." Conversely, Darwish’s lowest-MATTR poem, *I See My Ghost Coming
+from Afar* (أرى شبحي قادماً من بعيد) (0.79), uses the deliberate
+repetition of "I gaze upon" (أطل) as a rhetorical strategy common in
+Arabic poetic traditions.
 
-Darwish's mean TTR (0.805) slightly exceeds Baraka's (0.796). Looking at
-the MATTR, Baraka's mean MATTR (0.879) is higher than Darwish's (0.854),
-suggesting comparable diversity once text length is controlled for. The
-outliers are more telling than the averages. Baraka's "SOS" has a TTR of
-just 0.27, driven by repetitive incantation from phrases like "Calling
-all black people" and "Come in". Darwish's lowest-TTR poem is "أرى شبحي
-قادماً من بعيد" / "I See My Ghost Coming from Afar" (0.63), where the
-deliberate repetition of the key phrase "I gaze upon" (translated), at
-the beginning of each successive clause is a rhetorical strategy, and
-known as a common style in Arabic poetry.
-
-Overall, there is no clear overall difference between the two poets
-based on TTR and MATTR alone. Variation within each poet’s poems is
-often larger than the difference between the poets. This suggests that
-lexical diversity is influenced more by individual poem style,
-repetition, and structure than by the poet or language alone.
-
-However, as discussed earlier, Arabic morphological structure may
-inflate lexical diversity scores. Therefore, Darwish’s lexical diversity
-scores may appear slightly higher than they would under lemmatization,
-and comparisons between Arabic and English poems should be interpreted
-cautiously. For this reason, the results are best interpreted as
-comparative within the corpus rather than as absolute measures of
-lexical richness across the two languages.
+Overall, the high scores in poems like *Ka’Ba* and *I Am From There*
+(أنا من هناك) suggest that resistance is not constructed through a fixed
+or repetitive vocabulary. Instead, both poets employ a wide range of
+images, cultural references, and identity markers to articulate
+resistance. The fact that variation within each poet’s work is greater
+than the difference between the two suggests that lexical diversity is
+driven by individual poem structure rather than linguistic or stylistic
+constraints. As noted in Section 1.2, these scores must be interpreted
+as comparative within the corpus, as Arabic’s morphological complexity
+inherently inflates TTR relative to English.
 
 ## 3.3 Sparsity and DFM Analysis
 
 While, Lexical Diversity measured the vocabulary variation within
 individual poems, Document–Feature Matrix (DFM) analysis allows us to
 examine vocabulary distribution across the corpus as a whole. With this
-approach, we look at how vocabulary is distributed across all poems by
-each poet, particularly how much vocabulary is shared between poems
-versus how much is unique to individual poems.
-
-The most important measure here is sparsity which measures the
-proportion of zeros in a DFM. High sparsity means most words appear in
-very few poems, indicating a vocabulary that is spread thinly across the
-corpus. Lower sparsity means more shared vocabulary across poems. This
+approach, we look how much vocabulary is shared between poems versus how
+much is unique to individual poems through the measure of sparsity. This
 metric is computed within each poet's sub-corpus, making it comparable
 across languages.
 
@@ -724,60 +701,25 @@ sparsity_by_trim %>%
   theme_minimal(base_size = 13)
 ```
 
-```{r topfeatures}
-# Top features per poet as formatted tables
-darwish_top15 <- topfeatures(darwish_dfm, n = 15)
-baraka_top15  <- topfeatures(baraka_dfm, n = 15)
-
-kable(
-  tibble(Word = names(darwish_top15), Count = unname(darwish_top15)),
-  caption = "Top 15 features: Darwish (after stopword removal)"
-)
-kable(
-  tibble(Word = names(baraka_top15), Count = unname(baraka_top15)),
-  caption = "Top 15 features: Baraka (after stopword removal)"
-)
-```
-
 The plot shows how much of a poet's vocabulary is unique to a few poems
-versus how much is shared across their entire work. On the far left of
-the graph, the high starting points, above 90%, reveal that both Darwish
-and Baraka have high sparsity, meaning that the vast majority of words
-they use appear in only one or two poems rather than being repeated
-throughout the collection. This confirms the finding from Lexical
+versus how much is shared across their entire work. On the far left, the
+high starting points, above 90%, reveal that both Darwish's and Baraka'
+poems have high sparsity. This confirms the finding from Lexical
 Diversity analysis, that both authors use a rich and diverse language.
 Darwish's DFM has a slightly higher sparsity (92.1%) than Baraka
 (91.4%), meaning that a given word in Darwish's corpus is less likely to
-appear across multiple poems.
-
-The difference between Sparsity and TTR, is that sparsity looks at the
-corpus as a whole, while TTR captures the essence of individual poems.
-For instance it includeds deliberate rhetorical repetitions like
-Baraka’s incantations or Darwish’s anaphora. The drop in the lines as
-the filter moves to the right along the x-axis, shows that once these
-unique, poem-specific words are removed, only a very small core of
-shared thematic words remains. These words are visible in the top
-features. For Baraka, words like "black," "people," and "killed" act as
-the connective tissue across his work, while Darwish relies on elemental
-imagery such as "sea" (البحر), "land" (الارض), and "sky" (السماء) to
-bridge his poems.
-
-The fact that the blue line for Darwish sits higher than the red line
-for Baraka suggests that Darwish's vocabulary is even more spread out.
-However, this is largely again because of the Arabic language
-morphology. In short, the plot illustrates that while these poets have a
-few central themes they return to, they primarily use a wide and diverse
-range of unique language to express their resistance.
+appear across multiple poems. The stagnation of the graphs as the filter
+moves to the right along the x-axis, shows that once unique,
+poem-specific words are removed, only a very small core of shared
+thematic words remains.
 
 ## 3.4 Word Frequency Analysis
 
-As the sparsity of each corpus suggests, the poems have a high
-proprotion of unique words, while still being connected through a small
-set of recurring themes. Word frequency analysis counts the most common
-words after removing stopwords, revealing the core thematic vocabulary
-of each poet. Since Arabic and English words cannot be compared
-directly, we display each poet's top words separately in a side-by-side
-visualization.
+Word frequency analysis allows us to identify what the most frequent
+words across corpora are and can reveal the core thematic vocabulary.
+
+Since Arabic and English words cannot be compared directly, we display
+each poet's top words separately in a side-by-side visualization.
 
 ```{r word-freq}
 # Darwish word frequencies (using normalized Arabic stopwords)
@@ -830,38 +772,54 @@ ggplot(wc_data, aes(label = word, size = n, color = n)) +
        subtitle = "Top 80 words after stopword removal")
 ```
 
-The core vocabulary across each poem is what can tell us something about
-the themes in each poets writing.
+Darwish's most frequent words are "look/gaze out/upon" (اطل), "and I"
+(وانا), "my father" (ابي), "the sea" (البحر), and "and you" (وانت). This
+vocabulary is rooted in the self, landscape, and family. It reflects
+poetry of personal witness and memory, where Darwish positions himself
+as the speaker and orientates himself in relation to land, family, and
+an adressed other. The frequency of "and I" and "and you" suggests that
+Darwish's resistance is expressed through intimate relationship and
+personal testimony rather than collective declaration.
 
-Darwish's most frequent content words after stopword removal are "look
-out" (اطل), "and I" (وانا), "my father" (ابي), "the sea" (البحر), and
-"and you" (وانت) . This is vocabulary rooted in the self, landscape,
-family, and address. It reflects blabla
+In contrast, Baraka’s most frequent words are “black,” “people,”
+“killed,” “poems,” and “world,” reflecting a vocabulary centered on
+collective identity, political struggle, and oppression. One interesting
+finding from Baraka's word cloud is the simultaneous presence of both
+'black' and 'white' as frequent words. This suggests that Baraka's
+vocabulary defines Blackness in opposition to whiteness, reflecting the
+systemic racial contrast at the heart of his political project.
+Resistance here is not expressed in isolation but always in relation to
+the oppressive structure it pushes against. His language addresses
+communities, systems of power, and violence rather than the individual
+speaker.
 
-Baraka's top words are "black," "people," "killed," "poems," "world" ,
-reflecting a vocabulary oriented toward collective identity and
-violence.
+Particularly interesting is the cluster of violence-related words,
+"killed", "dead", "shot", and "fire", appearing alongside "survive".
+This suggests that resistance in Baraka's work is fundamentally about
+endurance and survival in the face of physical and systemic threat
+rather than abstract political struggle.
 
-The contrast is stark: Darwish's lexicon is intimate and geographic,
-while Baraka's is communal and confrontational.
+Both poets root their resistance in geopgraphic terms. Baraka uses words
+as "land" and "america" frequently, positioning the resistance and black
+struggle within and against a specific national territory. Darwish's
+most frequent geographic words, "الارض"(the land/earth), "البحر" (the
+sea), "السماء" (the sky), are less nationally specific and instead work
+as symbolic landscape elements. This reflects the memories of his
+homeland as remembered through the nature and environment rather than
+politics and oppression.
+
+Overall, Darwish's poetry is organized around the speaker, memory, and
+landscape, while Baraka's poetry is organized around collective
+identity, political struggle, and historical violence. Both are
+resistance vocabularies, but they operate through fundamentally
+different relationships between the poet, the people, and the land.
 
 ## 3.5 Bigram Network Graph
 
-Bigram analysis extracts consecutive word pairs and visualizes them as
-network graphs, where nodes represent words and edges connect words that
-appear together. As with word frequency, bigrams are language-specific
-and must be analyzed separately per poet.
-
-This method is used because it provides deeper insight than single words
-alone, revealing phrase structure and rhetorical patterns. While a
-single-word frequency count might show that a poet uses the word "black"
-or "land" often, bigrams reveal the specific context. They can show
-whether "black" is paired with "power," "people," or "art," or whether
-"land" is paired with "lost," "my," or "holy." By visualizing these
-connections as a network, we can identify the "thematic clusters" that
-define each poet’s unique style of resistance, allowing us to see not
-just their core vocabulary, but the specific associations and meanings
-they build through word pairings.
+While word frequency shows what words a poet uses most, bigrams reveal
+how those words are combined, exposing the rhetorical structures that
+word counts alone cannot capture. As with word frequency, bigrams are
+analyzed separately per poet.
 
 ```{r bigrams}
 # Darwish bigrams (normalized Arabic stopwords)
@@ -944,28 +902,68 @@ p_darwish + p_baraka +
   )
 ```
 
-Baraka's top bigram is "black people," which functions as both subject
-and rallying cry across multiple poems. His network also shows the
-striking pair "survive blackman / blackman survive" -- a chiastic
-repetition typical of his incantatory style. Darwish's top bigrams
-include "think of others" (فكر بغيرك, also a poem title used as a
-refrain) and "passing words" (الكلمات العابره). Where Baraka's network
-clusters tightly around racial identity, Darwish's spreads across
-landscape and temporal imagery.
+Due to Arabic morphology, bigrams in Arabic often represent larger
+semantic phrases than in English. Because conjunctions and pronouns are
+frequently attached to words, Arabic bigrams can capture full poetic
+expressions, whereas English bigrams more often reflect simple
+collocations such as noun phrases. This difference should be taken into
+account when comparing bigram patterns across languages.
 
-## 3.8 TF-IDF: Distinctive Words
+Baraka's bigrams cluster around themes of collective identity, political
+accusation, and historical reference. His top bigram is "Black people"
+functions as both a subject and a collective call, supported by its
+connection to "Calling" in the network graph. This is reinforced by
+"survive blackman / blackman survive," which creates a chant-like
+inversion mirroring the repetitive style of *SOS*. Survival is not only
+expressed, but repeated and reversed, suggesting that endurance under
+oppression becomes a rhetorical strategy in itself.
 
-Term Frequency-Inverse Document Frequency (TF-IDF) identifies words that
-are distinctive to each poet rather than just frequent. A word with high
-TF-IDF appears often in one poet's work but rarely, or never, in the
-other's. This is computed by treating each poet's full corpus as a
-single document. Since Arabic and English never share words, TF-IDF is
-applied within each language separately across poems, in order to
-analyze which words are distinctive to each poem and poet across the
-corpus.
+Baraka’s rhetorical strategy of direct accusation is further evidenced
+by "central bank" and "evil word." In the controversial *Somebody Blew
+Up America*, bigrams like "4000 Israeli" and "1944 Minnesota" move the
+poetry from abstract struggle to specific, historical indictments. By
+listing institutional targets, Baraka names the enemy directly. Even his
+metaphorical bigrams, such as "owl exploding," serve to intensify this
+literal, confrontational register.
 
-Four poems are chosen from each poet to show the TF-IDF per poem for
-those. write more about why
+Conversely, Darwish’s bigrams are less centered on direct accusation and
+instead cluster around imagery, land, and collective identity. Three of
+Darwish's top bigrams, "اريد اطل" , "اطل كشرفه" and "كشرفه بيت" , form a
+single continuous phrase "I want to look out like a balcony of a house".
+The line appears five times in أرى شبحي قادماً من بعيد” (*I See My Ghost
+Coming from Afar*), which shows Darwish's use of anaphoric repetition as
+a rhetorical strategy for emphasizing key phrases and create rhythm.
+Along with bigrams such as “بعيدة السماء” (the sky is far), “وانا ارضها”
+(her land and I), and “اينما تذهب” (wherever you go), this imagery
+points to distance, movement, and attachment to land. The speaker is
+positioned as an observer looking toward a home or landscape that is no
+longer fully accessible due to displacement and occupation, reflecting
+themes of exile and disrupted belonging.
+
+The remaining bigrams clusters around a few broader themes. Phrases like
+“فكر بغيرك” (think of others) and “جميعهم أهلي” (all of them are my
+people) point to a collective sense of identity and solidarity, where
+resistance is framed through shared experience rather than direct
+confrontation. This suggests that Darwish sees resistance not only by
+personal experience but in a broader sense of community shaped by
+displacement and occupation.
+
+While Baraka builds resistance through overt confrontation, Darwish
+often frames it through solidarity and the assertion of identity.
+Phrases like "think of others" (فكر بغيرك) and "all of them are my
+people" (جميعهم أهلي) point to a collective identity shaped by shared
+displacement. Even the famous "Record! I am angry" (سجل تغضب) from
+*Identity Card* directs the question of anger back onto the oppressor.
+Rather than naming an enemy, Darwish resists by asserting the "I am" in
+the face of erasure. Structurally, Baraka builds resistance by naming
+the external enemy, while Darwish builds it by indirectly constructing
+the scene of loss.
+
+## 3.6 TF-IDF: Distinctive Words
+
+TF-IDF moves the comparison to the poem level, asking not just how the
+poets differ overall, but whether those differences are consistent
+across individual works or vary within each poet’s corpus.
 
 ```{r tfidf, fig.height=8, fig.width=12}
 # TF-IDF per poem within each poet
@@ -1008,10 +1006,18 @@ bind_rows(top_tfidf_d, top_tfidf_b) %>%
   theme_minimal(base_size = 13)
 ```
 
+**TF-IDF per poem**
+
+We selected eight poems representing key themes such as political
+resistance, violence, identity, exile, memory, cultural identity, and
+philosophical introspection. This ensures that the visualization
+reflects thematic diversity across both poets rather than only the
+highest-scoring TF-IDF texts.
+
 ```{r tfidf-per-poem, fig.height=9, fig.width=13}
 # Top TF-IDF words per poem -- Baraka (4 poems)
 baraka_tfidf %>%
-  filter(poem %in% c("Somebody Blew Up America", "Black Art",
+  filter(poem %in% c("Somebody Blew Up America", "Ka'Ba",
                       "Preface to a Twenty Volume Suicide Note",
                       "An Agony. As Now.")) %>%
   group_by(poem) %>%
@@ -1052,136 +1058,110 @@ darwish_tfidf %>%
   theme_minimal(base_size = 12)
 ```
 
-Where frequency analysis shows what is common across a poet's work,
-TF-IDF shows what makes each poem unique. The per-poem TF-IDF plots for
-Baraka confirm that "Somebody Blew Up America" is dominated by
-accusatory vocabulary, while "Preface" is defined by more introspective
-terms. These thematic signatures help distinguish poems that share
-high-frequency words but differ in subject and tone.
+TF-IDF reveals that for both poets, resistance is constructed through a
+divided linguistic strategy rather than one single theme. Baraka’s top
+words, "calling," "survive," "urgent," and "shot", are directly
+connected to the themes of collective struggle and systemic oppression
+identified earlier.
 
+Looking at Baraka’s selected poems, his high scores in Anger and Fear
+are built through a unique vocabulary of accusation in *Somebody Blew Up
+America*, where terms like "killed" and "devil" serve as rhythmic
+anchors. In contrast, *Preface to a Twenty Volume Suicide Note* reveals
+a personal and philosophical dimension of resistance. Here, the use of
+"stars," "night," and "daughter’s" mirrors an inward-looking struggle
+with existential despair rather than outward conflict. Similarly, *An
+Agony. As Now* utilizes a graphic vocabulary of "pain" and "flesh" to
+describe the physical toll of oppression, while *Ka’Ba* shifts toward
+the affirmation of identity through references to "African" and the
+collective "walk." This shows that Baraka has a "political vocabulary"
+he shares across many poems, but a "personal vocabulary" he keeps
+isolated in specific, intimate works.
 
-# 4. Discussion
+Darwish’s top words, "اطل" (look out/gaze), "ريتا" (Rita), "سجل"
+(record), and "بغيرك" (others), reinforce the themes highlighted in his
+bigrams. "اطل" and "ريتا" evoke memory and personal witness, while
+"بغيرك" is connected to solidarity and collective identity. Together,
+these terms show how Darwish’s vocabulary combines introspection and
+memory to express resistance in a symbolic manner.
 
-## 4.1 Emotional Registers of Resistance
+In *I See My Ghost Coming from Afar*, the exceptionally high score for
+"اطل" (look out/gaze) confirms the structural use of anaphora. In
+*Identity Card*, the terms "سجل" (record) and "عربي" (Arab) anchor the
+poem’s confrontation with the occupier, asserting an identity rooted in
+"roots" and "anger." These terms formed the rhythmic basis of the poem
+as a protest song. Furthermore, the resistance in *Rita and the Rifle*
+is highlighted by the unique presence of "Rita" and "rifle," blending
+intimacy with militaristic reality. Finally, in *To My Mother*, domestic
+terms like "bread" (**خبز**) and "coffee" (**قهوة**) serve as cultural
+artifacts of memory as a defense against the erasure of exile.
 
-The NRC emotion analysis is the most direct cross-linguistic comparison
-in this study. Both poets share fear and sadness as their dominant
-emotions, confirming that resistance poetry -- whether rooted in
-Palestinian exile or African-American struggle -- draws heavily on these
-registers. The difference lies in the secondary emotions: Darwish leans
-toward surprise (11.9%), reflecting the uncertainty and displacement of
-exile, while Baraka's anger (10.2%) runs nearly as strong as his
-sadness, consistent with his confrontational poetics.
+Across these works, TF-IDF reveals that Baraka divides sharply between a
+confrontational political vocabulary and an intimate one, Darwish's
+distinctive terms are more unified. Whether a bureaucratic command or a
+domestic memory, they all perform the same function, insisting on the
+presence of a Palestinian reality that exile and occupation work to
+erase.
 
-One caveat: not every word matches the NRC lexicon. Arabic's
-morphological complexity reduces match rates because prefixes and
-suffixes create surface forms absent from the lexicon. We report match
-rates transparently so the reader can judge the reliability of these
-profiles.
+# 4.0 Limitations
 
-## 4.2 Vocabulary and Structure
+1.  **Corpus size**: With 14 poems per poet, this is a small curated
+    sample by text mining standards and can introduce sample bias.
+    Results therefore are exploratory and should not be generalized to
+    the full body of either poet's work. The small corpus also precluded
+    unsupervised topic modelling with LDA and thematic clusters were
+    therefore identified through interpretive analysis of word
+    frequency, bigrams, and TF-IDF.
 
-Mean TTR values are close (Darwish 0.805, Baraka 0.796), but the
-outliers tell a richer story. Baraka's "SOS" has a TTR of just 0.27 --
-the lowest in either corpus -- because its heavy onomatopoeia and
-incantatory repetition deliberately sacrifice vocabulary breadth for
-rhythmic force. Darwish uses anaphora similarly in "Passers in Passing
-Words" (TTR 0.63), where the repeated address structure is a rhetorical
-choice, not a vocabulary limitation. In both cases, low TTR flags
-deliberate poetic strategy.
-
-Sparsity is comparable across the two sub-corpora (Darwish 92.1%, Baraka
-91.4%), indicating that both poets draw on largely poem-specific
-vocabulary rather than recycling a fixed set of terms. This high
-sparsity is expected in poetry, where each poem typically addresses a
-distinct theme or occasion.
-
-## 4.3 Thematic Vocabulary and Phrase Patterns
-
-The word frequency and bigram analyses run separately per language but
-expose a clear thematic contrast. Darwish's top words (اطل "look out,"
-ابي "my father," البحر "the sea") are intimate and landscape-oriented.
-Baraka's ("black," "people," "killed") are collective and political. The
-bigram "black people" dominates Baraka's network as both subject and
-rallying cry, while Darwish's top bigrams ("think of others," "passing
-words") are more reflective.
-
-Word frequency and bigrams complement each other: frequency shows what
-each poet returns to, while bigrams show how those terms combine into
-phrases. Baraka's chiastic pair "survive blackman / blackman survive" is
-invisible in a word count but central to his rhythmic strategy.
-
-## 4.4  Cross-Linguistic Patterns
-
-The poem-level heatmaps show that these aggregate profiles mask wide
-internal variation. Darwish's "I Am Joseph, O Father" is dominated by
-surprise (0.50), while "Rita and the Rifle" peaks on sadness and anger.
-Baraka's "Black Art" concentrates on fear and anger, while "Preface to a
-Twenty Volume Suicide Note" scores highest on trust (0.21). Neither poet
-is a one-note writer, even though both are often filed under
-"resistance."
-
-TF-IDF and the per-poem breakdown shift attention from shared vocabulary
-to distinctive vocabulary. Words that define "Somebody Blew Up America"
-differ sharply from those that define "Preface," even though both poems
-share many high-frequency terms. This technique helps separate thematic
-identity from mere frequency.
-
-Pairwise correlation networks group words that share thematic space
-across poems, regardless of adjacency. Baraka's network clusters racial
-identity vocabulary separately from political accusation vocabulary.
-Darwish's clusters landscape imagery with body imagery. These groupings
-map the latent thematic modules that organize each poet's work.
-
-## 4.5 Limitations
-
-We note several methodological limitations:
-
-1.  **Arabic morphology**: Arabic's rich inflectional system produces
-    many surface forms from a single root. Without lemmatization or
-    stemming (which would require specialized Arabic NLP tools beyond
-    the scope of this course), each inflected form is treated as a
-    separate word. This may inflate TTR and sparsity for Darwish
-    relative to Baraka, and reduce NRC lexicon match rates.
-
-2.  **Corpus size**: With 14 poems per poet, this is a small corpus by
-    text mining standards. Results are exploratory and should not be
-    generalized to the full body of either poet's work.
+2.  **Arabic morphology**: As discussed in Section 1.2, Arabic's
+    inflectional system produces multiple surface forms from a single
+    root. Without lemmatization, each form is counted separately, which
+    likely inflates Darwish's TTR and sparsity scores and reduces NRC
+    match rates relative to Baraka. Morphological differences also
+    affect bigram analysis, as Arabic bigrams often represent larger
+    semantic units than English bigrams.
 
 3.  **NRC lexicon coverage**: The multilingual NRC lexicon relies on
     machine translation for non-English entries. Some Arabic emotion
     assignments may be imprecise due to translation artifacts or
     cultural differences in emotional connotation.
 
-4.  **Translation equivalence**: We compare numeric metrics, not
-    meanings. Two poems might score identically on "sadness" for
-    entirely different reasons, rooted in different cultural contexts of
-    loss.
-
 # 5. Conclusion
 
-Darwish and Baraka share sadness and fear as their dominant emotions,
-but diverge on secondary registers: Darwish's work carries more surprise
-and less joy, while Baraka balances anger with trust and affirmation.
-Their lexical strategies also differ -- Darwish's vocabulary is intimate
-and geographic, Baraka's is collective and confrontational -- though
-both poets show high within-corpus variation, with individual poems
-occupying very different emotional and thematic positions.
+This project analyzed 28 poems through six text-mining techniques,
+moving from basic tokenization to sentiment and network analysis. Across
+these metrics, a consistent pattern emerges. While Darwish and Baraka
+share a dominant emotional register of sadness and fear and comparable
+lexical diversity, they diverge fundamentally in their rhetorical
+construction of resistance.
 
-The ten techniques applied here -- NRC sentiment, heatmaps, TF-IDF,
-TTR/MATTR, sparsity, word frequency, bigrams, and pairwise correlation,
-covers tokenization, sentiment analysis, lexical diversity,
-document-feature matrices, and network analysis. The NRC multilingual
-lexicon proved essential for bridging the language divide, enabling
-direct comparison of emotional profiles between Arabic and English
-poetry.
+The data confirms that Baraka expresses resistance through
+confrontation. His resistance is collective and confrontational, built
+on a structural anchor of terms like "Black people" and "killed." His
+bigram networks and TF-IDF scores reveal a language addressed to a
+community and an enemy, where the unit of resistance is a systemic
+accusation against institutional targets like the "central bank".
+Structurally, Baraka builds resistance outward toward the political
+sphere.
 
-The poem-level analyses (heatmaps, TF-IDF) are where the most
-interesting patterns emerge: they show that neither poet is monolithic,
-and that corpus-level averages obscure substantial internal variation.
-These quantitative patterns complement traditional literary analysis by
-making visible the emotional and structural architecture of resistance
-poetry across two very different linguistic traditions.
+In contrast, Darwish expresses ressitance through symbolic means. His
+resistance is intimate and symbolic, using a vocabulary of "home" with
+domestic artifacts like "bread" (خبز) and "coffee" (قهوة) and natural
+imagery like the "sea" (بحر). These terms function as a defense against
+the erasure of exile, affirming a Palestinian reality that exists
+regardless of political occupation. Structurally, Darwish builds
+resistance inward, using the individual speaker as a site of national
+witness.
+
+While Baraka’s corpus is characterized by emotional density and direct
+systemic critique, Darwish’s corpus operates through lyrical
+concentration, where memory and anaphora serve as forms of witness. This
+suggests that while the experience of oppression is universal, the
+linguistic responses to it are deeply rooted in specific cultural and
+political traditions. Future research using larger corpora and
+lemmatized Arabic text could further explore how these distinct
+"resistance vocabularies" evolve over time or across different
+translations.
 
 # References
 
