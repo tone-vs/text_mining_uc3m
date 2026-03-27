@@ -123,19 +123,18 @@ diversity (TTR), sparsity, word frequency, bigram networks, and TF-IDF.
 ## 1.1 Background
 
 Mahmoud Darwish is one of the most eminent Arab poets throughout
-history. Darwish grew up in a palestinian village, which was later
+history. Darwish grew up in a Palestinian village, which was later
 occupied by Israel. Consequently, he and his family had to flee to
-Lebanon, before they could return back to their land. After his return,
+Lebanon, before they could return to their land. After his return,
 Darwish was imprisoned for travelling between villages and reciting
 poetry. He therefore lived in exile for large parts of his life. One of
 his most popular poems "Identity card" was even made in to a protest
 song used for resisting the Israeli military. Darwish was also
-politically active, and served as an editor for the Palestinan
-Liberation Organisation. This painted the picture of him as a resistance
-poet, by strongly fighting and condemning Israeli occupation through
-poetry. His poems are deeply rooted in the experience of exile,
-displacement, and the ongoing struggle for Palestinian identity and
-self-determination.
+politically active, and served as an editor for the Palestinian
+Liberation Organisation. Establishing him as a resistance poet who used
+poetry to resist and condemn Israeli occupation. His poems are deeply
+rooted in the experience of exile, displacement, and the ongoing
+struggle for Palestinian identity and self-determination.
 
 Amiri Baraka was similarly a politically engaged poet and activist. In
 contrast to Mahmoud Darwish, Baraka emerged as a central figure in
@@ -152,13 +151,13 @@ advocating for Black liberation.
 A bilingual corpus poses methodological challenges, since Arabic and
 English words cannot be directly compared. We address this by selecting
 techniques that produce language-independent numeric outputs, like NRC
-emotion scores, MATTR, and sparsity. Additionally, word frequency,
-bigram networks, and TF-IDF are run separately for each poet to allow
-for a side-by-side comparison.
+emotion scores, TTR, and sparsity. Additionally, word frequency, bigram
+networks, and TF-IDF are run separately for each poet to allow for a
+side-by-side comparison.
 
 Arabic and English differ structurally in ways that affect vocabulary
 diversity. Arabic morphology operates at two levels. At the derivational
-level, a single root generates semantically distinct words; for
+level, a single root generates semantically distinct words. For
 instance, the root *w-ṭ-n* (وطن), central to Darwish's poetry, yields
 *waṭan* (homeland) and *muwāṭin* (citizen), which are genuine vocabulary
 choices. At the inflectional level, the same word takes multiple
@@ -170,9 +169,12 @@ separately as in English.
 Ideally, this would be addressed through lemmatization to reduce
 inflected forms to a common base. However, Arabic lemmatization was
 beyond the scope of this project, and the analysis was conducted using
-Quanteda without morphological normalization. This is a limitation of
-the study, as lexical diversity and sparsity scores for Darwish may be
-artificially inflated compared to Baraka.
+Quanteda without morphological normalization. To account for this, the
+tokenization process uses a minimum character threshold of two for
+Arabic and three for English, preserving Arabic’s shorter root-based
+words while filtering English functional noise. This remains a
+limitation of the study, as lexical diversity and sparsity scores for
+Darwish may be slightly inflated compared to Baraka.
 
 # 2. Setup and Data
 
@@ -376,8 +378,8 @@ Darwish produced only 283 emotion matches from 3001 total tokens (4.7%
 match rate), while Baraka produced 1125 matches from 4017 tokens
 (19.3%). This difference means that Darwish's emotion scores are based
 on a much smaller proportion of his vocabulary, likely reflecting
-Arabic's morphological, as well as potential imprecision in the NRC's
-machine-translated Arabic entries.
+Arabic's morphological complexity, as well as potential imprecision in
+the NRC's machine-translated Arabic entries.
 
 ```{r sentiment-aggregate}
 # Aggregate emotion counts per poem
@@ -453,8 +455,8 @@ reflects the Black Arts Movement’s emphasis on spiritual celebration and
 cultural pride, creating space for joy even within a resistance corpus.
 Conversely, Darwish’s structural focus on displacement and identity
 leaves less room for joyful registers. While Darwish exhibits higher
-overall sentiment polarization (positive/negative), Baraka uses a more
-"neutral" political vocabulary that bypasses simple sentiment
+overall sentiment scores of both positive and negative, Baraka uses a
+more "neutral" political vocabulary that bypasses simple sentiment
 classification.
 
 ### Poem-Emotion Heatmap
@@ -495,17 +497,17 @@ baraka_emotions %>%
         panel.grid = element_blank())
 ```
 
-The most significant contrast between the two poets is structural.
-Darwish’s heatmap reveals "emotional concentration"; high intensity is
-localized in a few cells. This suggests his poems are emotionally
-focused rather than multidimensional. For example, his 13.6% sadness
-score is heavily driven by ريتا والبندقية (*Rita and the Rifle* ) at
-0.33 and الجدار (*The Wall)* at 0.22. In these works, sadness is a
-direct response to the "war-side" of occupation. Similarly, surprise is
-almost exclusively tied to أنا يوسف يا أبي (*I Am Joseph, O Father* ) at
-0.50. A notable exception is فكر بغيرك (*Think of Others*), which shows
-a rare, even distribution (0.17) across four emotions, reflecting a call
-for universal empathy.
+The most significant contrast between the two poets is structural rather
+than purely emotional. Darwish’s heatmap reveals "emotional
+concentration", where high intensity is localized in a few cells. This
+suggests his poems are emotionally focused rather than multidimensional.
+For example, his 13.6% sadness score is heavily driven by ريتا والبندقية
+(*Rita and the Rifle* ) at 0.33 and الجدار (*The Wall)* at 0.22. In
+these works, sadness is a direct response to the "war-side" of
+occupation. Similarly, surprise is almost exclusively tied to أنا يوسف
+يا أبي (*I Am Joseph, O Father* ) at 0.50. A notable exception is فكر
+بغيرك (*Think of Others*), which shows a rare, even distribution (0.17)
+across four emotions, reflecting a call for universal empathy.
 
 In contrast, Baraka’s heatmap is "uniformly dense," reflecting a more
 consistent emotional engagement across his work. His high anger scores
@@ -786,7 +788,7 @@ In contrast, Baraka’s most frequent words are “black,” “people,”
 collective identity, political struggle, and oppression. One interesting
 finding from Baraka's word cloud is the simultaneous presence of both
 'black' and 'white' as frequent words. This suggests that Baraka's
-vocabulary defines Blackness in opposition to whiteness, reflecting the
+vocabulary defines blackness in opposition to whiteness, reflecting the
 systemic racial contrast at the heart of his political project.
 Resistance here is not expressed in isolation but always in relation to
 the oppressive structure it pushes against. His language addresses
@@ -799,14 +801,14 @@ This suggests that resistance in Baraka's work is fundamentally about
 endurance and survival in the face of physical and systemic threat
 rather than abstract political struggle.
 
-Both poets root their resistance in geopgraphic terms. Baraka uses words
-as "land" and "america" frequently, positioning the resistance and black
-struggle within and against a specific national territory. Darwish's
-most frequent geographic words, "الارض"(the land/earth), "البحر" (the
-sea), "السماء" (the sky), are less nationally specific and instead work
-as symbolic landscape elements. This reflects the memories of his
-homeland as remembered through the nature and environment rather than
-politics and oppression.
+Both poets root their resistance in geographic terms. Baraka uses words
+like "land" and "america" frequently, positioning the resistance and
+black struggle within and against a specific national territory.
+Darwish's most frequent geographic words, "الارض"(the land/earth),
+"البحر" (the sea), "السماء" (the sky), are less nationally specific and
+instead work as symbolic landscape elements. This reflects the memories
+of his homeland as remembered through the nature and environment rather
+than politics and oppression.
 
 Overall, Darwish's poetry is organized around the speaker, memory, and
 landscape, while Baraka's poetry is organized around collective
@@ -910,7 +912,7 @@ collocations such as noun phrases. This difference should be taken into
 account when comparing bigram patterns across languages.
 
 Baraka's bigrams cluster around themes of collective identity, political
-accusation, and historical reference. His top bigram is "Black people"
+accusation, and historical reference. His top bigram "Black people"
 functions as both a subject and a collective call, supported by its
 connection to "Calling" in the network graph. This is reinforced by
 "survive blackman / blackman survive," which creates a chant-like
@@ -918,13 +920,12 @@ inversion mirroring the repetitive style of *SOS*. Survival is not only
 expressed, but repeated and reversed, suggesting that endurance under
 oppression becomes a rhetorical strategy in itself.
 
-Baraka’s rhetorical strategy of direct accusation is further evidenced
-by "central bank" and "evil word." In the controversial *Somebody Blew
-Up America*, bigrams like "4000 Israeli" and "1944 Minnesota" move the
-poetry from abstract struggle to specific, historical indictments. By
-listing institutional targets, Baraka names the enemy directly. Even his
-metaphorical bigrams, such as "owl exploding," serve to intensify this
-literal, confrontational register.
+In the controversial *Somebody Blew Up America*, bigrams like "4000
+Israeli" and "1944 Minnesota" move the poetry from abstract struggle to
+specific, historical indictments. By listing institutional targets,
+Baraka names the enemy directly. Even his metaphorical bigrams, such as
+"owl exploding," serve to intensify this literal, confrontational
+register.
 
 Conversely, Darwish’s bigrams are less centered on direct accusation and
 instead cluster around imagery, land, and collective identity. Three of
@@ -948,16 +949,16 @@ confrontation. This suggests that Darwish sees resistance not only by
 personal experience but in a broader sense of community shaped by
 displacement and occupation.
 
-While Baraka builds resistance through overt confrontation, Darwish
-often frames it through solidarity and the assertion of identity.
-Phrases like "think of others" (فكر بغيرك) and "all of them are my
-people" (جميعهم أهلي) point to a collective identity shaped by shared
-displacement. Even the famous "Record! I am angry" (سجل تغضب) from
-*Identity Card* directs the question of anger back onto the oppressor.
-Rather than naming an enemy, Darwish resists by asserting the "I am" in
-the face of erasure. Structurally, Baraka builds resistance by naming
-the external enemy, while Darwish builds it by indirectly constructing
-the scene of loss.
+While Baraka builds resistance through confrontation and demands,
+Darwish often frames it through solidarity and the assertion of
+identity. Phrases like "think of others" (فكر بغيرك) and "all of them
+are my people" (جميعهم أهلي) point to a collective identity shaped by
+shared displacement. Even the famous "Record! I am angry" (سجل تغضب)
+from *Identity Card* directs the question of anger back onto the
+oppressor. Rather than naming an enemy, Darwish resists by asserting the
+"I am" in the face of erasure. Structurally, Baraka builds resistance by
+naming the external enemy, while Darwish builds it by indirectly
+constructing the scene of loss.
 
 ## 3.6 TF-IDF: Distinctive Words
 
@@ -1058,11 +1059,11 @@ darwish_tfidf %>%
   theme_minimal(base_size = 12)
 ```
 
-TF-IDF reveals that for both poets, resistance is constructed through a
-divided linguistic strategy rather than one single theme. Baraka’s top
-words, "calling," "survive," "urgent," and "shot", are directly
-connected to the themes of collective struggle and systemic oppression
-identified earlier.
+TF-IDF reveals that for both poets, resistance is constructed through
+multiple registers rather than a single theme. Baraka’s top words,
+"calling," "survive," "urgent," and "shot", are directly connected to
+the themes of collective struggle and systemic oppression identified
+earlier.
 
 Looking at Baraka’s selected poems, his high scores in Anger and Fear
 are built through a unique vocabulary of accusation in *Somebody Blew Up
@@ -1106,12 +1107,12 @@ erase.
 # 4.0 Limitations
 
 1.  **Corpus size**: With 14 poems per poet, this is a small curated
-    sample by text mining standards and can introduce sample bias.
-    Results therefore are exploratory and should not be generalized to
-    the full body of either poet's work. The small corpus also precluded
-    unsupervised topic modelling with LDA and thematic clusters were
-    therefore identified through interpretive analysis of word
-    frequency, bigrams, and TF-IDF.
+    sample and can introduce sample bias. Results therefore are
+    exploratory and should not be generalized to the full body of either
+    poet's work. The small corpus also precluded unsupervised topic
+    modelling with LDA and thematic clusters were therefore identified
+    through interpretive analysis of word frequency, bigrams, and
+    TF-IDF.
 
 2.  **Arabic morphology**: As discussed in Section 1.2, Arabic's
     inflectional system produces multiple surface forms from a single
@@ -1130,28 +1131,30 @@ erase.
 
 This project analyzed 28 poems through six text-mining techniques,
 moving from basic tokenization to sentiment and network analysis. Across
-these metrics, a consistent pattern emerges. While Darwish and Baraka
-share a dominant emotional register of sadness and fear and comparable
-lexical diversity, they diverge fundamentally in their rhetorical
-construction of resistance.
+these metrics, a consistent pattern emerges. While sentiment analysis
+shows that Darwish and Baraka share a dominant emotional register of
+sadness and fear, and sparsity and TTR scores reveal comparable lexical
+diversity, they diverge fundamentally in their rhetorical construction
+of resistance.
 
 The data confirms that Baraka expresses resistance through
 confrontation. His resistance is collective and confrontational, built
-on a structural anchor of terms like "Black people" and "killed." His
-bigram networks and TF-IDF scores reveal a language addressed to a
-community and an enemy, where the unit of resistance is a systemic
-accusation against institutional targets like the "central bank".
-Structurally, Baraka builds resistance outward toward the political
-sphere.
+around terms like "Black people" and "killed." His bigram networks and
+TF-IDF scores reveal a language addressed to a community and an enemy,
+where the unit of resistance is a systemic accusation against
+institutional targets. Structurally, Baraka builds resistance outward
+toward the political sphere; he accuses, connects oppression to history,
+mobilizes the community, and encourages people to open their eyes and
+see the oppressor.
 
-In contrast, Darwish expresses ressitance through symbolic means. His
-resistance is intimate and symbolic, using a vocabulary of "home" with
-domestic artifacts like "bread" (خبز) and "coffee" (قهوة) and natural
-imagery like the "sea" (بحر). These terms function as a defense against
-the erasure of exile, affirming a Palestinian reality that exists
-regardless of political occupation. Structurally, Darwish builds
-resistance inward, using the individual speaker as a site of national
-witness.
+In contrast, Darwish expresses resistance through symbolic means. His
+resistance is intimate and symbolic, using a vocabulary connected to
+culture and domestic artifacts that remind him of home, like "bread" and
+"coffee" and natural imagery like the "sea". These terms function as a
+defense against the erasure of exile, affirming a Palestinian reality
+that exists regardless of political occupation. Structurally, Darwish
+builds resistance inward, using the individual speaker as a site of
+national witness.
 
 While Baraka’s corpus is characterized by emotional density and direct
 systemic critique, Darwish’s corpus operates through lyrical
